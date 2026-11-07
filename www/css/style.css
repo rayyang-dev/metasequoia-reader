@@ -383,28 +383,9 @@ body { background: var(--bg); color: var(--fg); }
   background: var(--flip-shade, none);
 }
 
-/* ---------- 主题专属翻书动画（keyframes 需压过全局 animation:none!important） ---------- */
-/* 墨水风：毛笔墨迹横扫后淡化（覆盖层由 flipInk 注入） */
-#reader .ink-flip { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-#reader .ink-flip svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-#reader .ink-stroke,
-#reader .ink-stroke2 { fill: rgba(18,15,11,0.85); filter: blur(2.5px); transform-origin: left center; opacity: 0;
-  animation: ink-sweep 1.4s cubic-bezier(.22,.61,.36,1) forwards !important; }
-#reader .ink-stroke2 { fill: rgba(18,15,11,0.5); filter: blur(2px); animation-delay: .1s !important; }
-#reader .ink-splat { fill: rgba(18,15,11,0.6); opacity: 0;
-  animation: ink-splat 1.4s ease-out forwards !important; }
-@keyframes ink-sweep {
-  0%   { opacity: 0; transform: scaleX(.015); }
-  12%  { opacity: .95; }
-  40%  { opacity: .9; transform: scaleX(1); }
-  55%  { opacity: 0; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(1); }
-}
-@keyframes ink-splat {
-  0%   { opacity: 0; }
-  30%  { opacity: .55; }
-  100% { opacity: 0; }
-}
+/* ---------- 翻书动画 ----------
+   水墨风的新样式与时序已迁至 css/ink-flip.css + js/inkflip.js（Web Animations API，
+   不再依赖这里被全局禁用的 CSS keyframes）。下面仅保留简约主题的翻页覆盖层样式。 */
 
 /* 简约真实翻书：克隆出的“翻走的书页”及其明暗阴影（绕书脊旋出，露出底页） */
 #reader .flip-leaf { position: absolute; inset: 0; z-index: 5; pointer-events: none;

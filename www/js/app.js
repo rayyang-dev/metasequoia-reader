@@ -18,6 +18,7 @@ import {
 import { createTurnController } from './turn.js';
 import { createGazeEngine } from './gaze.js';
 import { mountReaderPro } from './pro.js';
+import { playInkFlip } from './inkflip.js';
 
 // Capacitor 仅存在于原生外壳（Android WebView），由桥接层把插件挂在全局 window.Capacitor.Plugins 上。
 // 本项目 www/ 未打包，浏览器 / PWA 环境没有运行时、也没有 importmap，若用裸模块导入
@@ -727,47 +728,11 @@ function endFlip() {
   isFlipping = false;
 }
 
-// ① 墨水风：毛笔墨迹先横扫淡化，随后下一页文字从模糊中慢慢浮现
+// ① 墨水风：「一笔过纸 · 墨渗字显」由独立模块 inkflip.js 实现。
+// flip-preview.html 直接复用同一份 playInkFlip，保证预览与真机效果完全一致；
+// 动画用 Web Animations API 编排（约 700ms，旧版 1950ms），异常时由模块自行清理墨层。
 async function flipInk(dir, mutate) {
-  const page = $('page');
-  const vp = $('page-viewport');
-  const ov = document.createElement('div');
-  ov.className = 'ink-flip';
-  ov.innerHTML =
-    '<svg viewBox="0 0 340 470" preserveAspectRatio="none">' +
-      '<g class="ink-splats">' +
-        '<circle class="ink-splat" cx="70" cy="210" r="3"/>' +
-        '<circle class="ink-splat" cx="300" cy="250" r="2.4"/>' +
-        '<circle class="ink-splat" cx="265" cy="205" r="2"/>' +
-        '<circle class="ink-splat" cx="95" cy="262" r="1.8"/>' +
-      '</g>' +
-      '<path class="ink-stroke2" d="M70 205 C140 198 210 200 278 205 C236 214 156 214 70 205 Z"/>' +
-      '<path class="ink-stroke" d="M28 236 C92 217 176 219 256 230 C298 235 320 231 330 227 C314 250 268 256 198 251 C116 246 72 252 28 236 Z"/>' +
-    '</svg>';
-  vp.appendChild(ov);
-  void ov.offsetWidth; // 触发墨迹 keyframes 动画
-
-  // 旧页缓慢虚化退场（笔迹覆盖其上，先“化”掉）
-  page.style.setProperty('transition', 'opacity .4s ease, transform .4s ease, filter .4s ease', 'important');
-  page.style.transform = 'translateY(-10px) scale(.985)';
-  page.style.filter = 'blur(4px)';
-  page.style.opacity = '0';
-  await wait(600);
-
-  // 换页：新页从模糊里慢慢浮现
-  await mutate();
-  page.style.transform = 'translateY(10px) scale(.99)';
-  page.style.filter = 'blur(6px)';
-  page.style.opacity = '0';
-  void page.offsetWidth;
-  page.style.setProperty('transition', 'opacity 1.3s ease, transform 1.3s ease, filter 1.3s ease', 'important');
-  page.style.transform = 'translateY(0) scale(1)';
-  page.style.filter = 'blur(0)';
-  page.style.opacity = '1';
-
-  await wait(1350);
-  ov.remove();
-  endFlip();
+  await playInkFlip({ viewport: $('page-viewport'), page: $('page'), dir, mutate });
 }
 
 // ② 简约：整页水平滑动翻页（参考夸克在线阅读——当前页水平滑出，下一页从对侧滑入）

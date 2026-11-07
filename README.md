@@ -36,8 +36,9 @@
 
 - 📚 **多格式导入**：EPUB / PDF / TXT / MOBI / FB2 / HTML / DOCX，App 内原生解析，MOBI 无需借助 Calibre（AZW3/KFX 仍建议用 Calibre 转 EPUB）
 - 📖 **分页式阅读**：非滚动，按屏幕真实分页，接近纸质书体验
-- ⚡ **墨水屏友好**：默认翻页零动画、按设置周期整屏刷新（Regal）规避残影；可在设置开启「翻书页动画」，手机端像翻书一样过渡
-- 🎨 **3 款主题皮肤**：墨水风（宣纸底·笔迹淡化翻页）/ 简约（米白底·整页水平滑动）/ 夜览（低亮度暖灰），阅读内 `Aa` 面板一点即换
+- ⚡ **墨水屏友好**：默认翻页零动画、按设置周期整屏刷新（Regal）规避残影；可在设置开启「翻页动画」，手机端像翻书一样过渡
+- 🖌 **水墨翻页（重做）**：「一笔过纸，墨渗字显」——落笔运锋 → 墨满换页 → 收笔渗显；前后方向镜像、按真实视口生成笔触、三层浓淡 + 宣纸渗墨毛边 + 错落墨点，约 0.7s 完成（旧版 1.95s，详见「水墨翻页」一节）
+- 🎨 **3 款主题皮肤**：墨水风（宣纸底·水墨笔意翻页）/ 简约（米白底·整页水平滑动）/ 夜览（低亮度暖灰·淡墨），阅读内 `Aa` 面板一点即换
 - 👁 **自动翻页系统**：定时 / 跟随你的翻页节奏 / **视线回扫**（读到页底、视线回到页首即翻页）。带校准、灵敏度、翻页前可取消预告、误翻一键撤销、状态灯与自动降级；摄像头帧严格端侧处理，默认关闭
 - 🧭 **阅读内快捷设置**：常驻进度条（可拖动跳章）、字号/行距/主题/亮度即时调整、首次引导、滑动与音量键翻页、跳转后一键返回原位置
 - 🧭 **底部导航 + 独立页面**：书架 / 统计 / 我的 / 设置 四页通过底部导航栏切换；**阅读统计与设置均为独立页面**（不再内嵌在阅读器里），设置页内置皮肤切换
@@ -121,11 +122,27 @@
 
 ### 📖 分页式阅读（墨水屏优化）
 ![阅读内页](docs/screenshots/03-reader.png)
-按屏幕真实尺寸分页（非滚动）。**默认翻页零动画、整屏反相刷新（Regal）** 规避残影；可在 **设置 → 屏幕与翻页** 开启「翻页动画」，前后翻页以翻书页的方式 3D 过渡。可调字体 / 边距 / 行距 / 段距 / 字间距、两端对齐与首行缩进。
+按屏幕真实尺寸分页（非滚动）。**默认翻页零动画、整屏反相刷新（Regal）** 规避残影；可在 **设置 → 屏幕与翻页** 开启「翻页动画」：简约主题走整页 3D 翻书过渡，墨水风主题走下方的水墨翻页。可调字体 / 边距 / 行距 / 段距 / 字间距、两端对齐与首行缩进。
+
+### 🖌 水墨翻页（一笔过纸，墨渗字显）
+旧版是「一张固定 340×470 的 SVG 墨迹图拉伸铺满 + 1.95s 模糊淡入淡出」：没有方向、边角变形、墨迹与换页各跑各的，像盖了层脏玻璃。新版把翻页当成**一次运笔**来编排：
+
+| 阶段 | 时序 | 视觉 |
+| --- | --- | --- |
+| ① 落笔 | 0–300ms | 墨带自起笔侧洇开，三层浓淡笔锋沿宣纸运过，错落墨点溅落 |
+| ② 墨满换页 | 300ms | 墨色完全覆纸的一瞬替换正文，视觉上是「墨过之处，已是新页」 |
+| ③ 收笔渗显 | 300–800ms | 墨从对侧被纸吸去，新页文字由淡渐浓自纸纤维渗出，一抹纸光掠过 |
+
+- **有方向**：下一页左→右起笔，上一页右→左，笔触 / 墨点 / 纸光全部镜像；
+- **不变形**：SVG `viewBox` 按真实视口像素生成，路径按实际尺寸计算，横竖屏 / 平板都不拉伸；
+- **有笔意**：三层浓淡（主笔 / 伴笔 / 飞白）+ `feTurbulence` 位移做宣纸渗墨毛边 + 8 个随机墨点，每次翻页用不同种子，像每次落笔都不同；
+- **工程可靠**：用 Web Animations API 而非 CSS keyframes（不受全局 `*{animation:none!important}` 影响），可 `await` 精确编排；`finally` 统一 `cancel()` + 移除墨层，渲染抛错也绝不留下遮住整屏的墨层；尊重 `prefers-reduced-motion`，夜览自动切淡墨变量。
+
+预览：`npm run preview:flip` 后打开 `http://localhost:4173/flip-preview.html`，可切换前后翻页、×2.2 慢放、夜览，以及「对比旧版」并排看差异。预览页与 App 共用同一份 `www/js/inkflip.js`，保证所见即所得。
 
 ### 🎨 主题皮肤 + 底部导航 + 独立页面
 ![设置·主题皮肤](docs/screenshots/04-settings.png)
-底部导航的「设置」是**独立页面**，内置 **2 款一键切换的皮肤**：墨水风（宣纸底·笔迹淡化翻页）/ 简约（米白底·整页水平滑动）。所有设置只存本机。
+底部导航的「设置」是**独立页面**，内置 **3 款一键切换的皮肤**：墨水风（宣纸底·水墨笔意翻页）/ 简约（米白底·整页水平滑动）/ 夜览（低亮度暖灰·淡墨）；阅读内 `Aa` 面板也可一点即换。所有设置只存本机。
 
 ### 📊 阅读统计与自动打卡
 ![阅读统计（日）](docs/screenshots/06-stats-day.png)
@@ -248,7 +265,8 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 前端：原生 ES Modules（无打包构建）、IndexedDB、Service Worker（PWA）
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
-- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 冒烟 / 跨文件脚注 / 标注收藏四套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / 冒烟 / 跨文件脚注 / 标注收藏五套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 翻页动画：Web Animations API（`js/inkflip.js`）+ SVG 渗墨滤镜，零第三方依赖、不打包大模型
 
 ---
 
@@ -258,11 +276,13 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 metasequoia-reader/
 ├── www/                            # Web 应用（PWA 入口，也是 Capacitor 的 webDir）
 │   ├── index.html                  # 单页结构：书架 / 阅读器 / 统计页 / 我的页 / 设置页 / 底部导航栏（阅读器内仍保留目录/书签/AI 侧滑面板）
-│   ├── css/style.css               # 墨水屏主题与全部样式（3 款皮肤 / 翻书页 3D 动画 / Regal 整屏反色 / 纸感设计令牌）
+│   ├── css/style.css               # 墨水屏主题与主样式（3 款皮肤 / 简约主题 3D 翻书 / Regal 整屏反色 / 纸感设计令牌；旧水墨 keyframes 已迁出）
+│   ├── css/ink-flip.css            # 水墨翻页独立样式：浓淡墨变量 / 宣纸纤维 / 方向镜像 / 夜览淡墨 / reduced-motion
 │   ├── css/pro.css                 # Pro 层独立样式：进度条 / 状态灯 / 预告 / 撤销 / 快捷面板 / 夜览（可整体删除回退）
 │   ├── books/sample.js             # 内置示例书《阅读者手记》（无版权风险，用于演示）
 │   └── js/
-│       ├── app.js                  # 主控：书架渲染 / 分页翻页（含翻书页动画）/ 底部导航与独立页面切换 / 阅读计时打卡 / 面板与设置接线
+│       ├── app.js                  # 主控：书架渲染 / 分页翻页（3D 翻书 + 水墨翻页）/ 底部导航与独立页面切换 / 阅读计时打卡 / 面板与设置接线
+│       ├── inkflip.js              # 水墨翻页：按视口生成笔触 SVG + Web Animations API 三段式编排（预览页共用）
 │       ├── store.js                # 存储层：IndexedDB 存书籍 + localStorage 存设置/进度/书签/统计/标注/收藏（均带内存兜底）
 │       ├── paginate.js             # 按屏幕真实尺寸的分页引擎（非滚动）
 │       ├── translate.js            # 中英互译（mock / DeepL / Google / 通用 LLM 可插拔）
@@ -277,7 +297,8 @@ metasequoia-reader/
 ├── android/                        # Capacitor 生成的 Android 原生工程（包名 com.rayyang.metasequoia）
 ├── harmony/                        # Capacitor 鸿蒙（HarmonyOS NEXT）原生工程，产出 .hap（rawfile/www 由 cap sync 生成，未进仓库）
 ├── docs/                           # 界面示意图 mockup.svg + 真实截图 screenshots/
-├── test/                           # puppeteer-core 真实浏览器回归（smoke / footnote / marks）+ 截图重生成脚本
+├── flip-preview.html               # 水墨翻页独立预览页：前后翻页 / ×2.2 慢放 / 夜览 / 对比旧版（与 App 共用 inkflip.js）
+├── test/                           # puppeteer-core 真实浏览器回归（pro / ink-flip / smoke / footnote / marks）+ 静态预览服务 + 截图重生成脚本
 ├── capacitor.config.json           # Capacitor 配置（appId / appName / webDir）
 └── README.md
 ```
@@ -289,15 +310,17 @@ metasequoia-reader/
 ## ✅ 测试
 
 ```bash
-npm test                        # 打包闸门：Pro 层 + 冒烟 + 跨文件脚注 + 标注收藏，四套真实浏览器回归
+npm test                        # 打包闸门：Pro 层 + 水墨翻页 + 冒烟 + 跨文件脚注 + 标注收藏，五套真实浏览器回归
 npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
+npm run test:ink                # 水墨翻页：视口笔触 / 方向镜像 / 换页时序 / 异常清理 / 夜览淡墨 / 真实 App 集成（29 用例）
+npm run preview:flip            # 启动本地服务，在 http://localhost:4173/flip-preview.html 直观对比新版与旧版
 npm run test:smoke              # 书架按钮 / EPUB 导入 / 图片内联 / 分页 / 控制条（样本书自动合成）
 npm run test:footnote           # 内存合成 EPUB：同文件/跨文件/图片式脚注、旧书兼容（6 用例）
 npm run test:marks              # 标注高亮持久化、收藏、我的页汇总/筛选/跳转/删除（11 用例）
 node test/regen-screenshots.mjs # 真实浏览器全页面截图，输出至 docs/screenshots/
 ```
 
-四套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
+五套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`ink-flip.mjs` 会自行拉起 `test/serve.mjs` 静态服务加载预览页，断言笔触几何、换页回调次数与动画清理，`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，均不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
 
 ---
 

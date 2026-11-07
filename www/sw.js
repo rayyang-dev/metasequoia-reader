@@ -1,7 +1,7 @@
 // 水杉阅读 —— Service Worker（离线缓存应用外壳）
 // 缓存版本号：每次改动 ASSETS 列表里的任意文件（尤其 js/app.js 等自身脚本）都必须 +1，
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
-const CACHE = 'inkreader-v8';
+const CACHE = 'inkreader-v9';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -19,7 +19,9 @@ const ASSETS = [
   'manifest.webmanifest',
   'css/style.css',
   'css/pro.css',
+  'css/ink-flip.css',
   'js/app.js',
+  'js/inkflip.js',
   'js/store.js',
   'js/paginate.js',
   'js/importers.js',

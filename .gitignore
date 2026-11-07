@@ -26,3 +26,6 @@ harmony/**/.hvigor/
 
 # Windows 保留名误建文件
 nul
+
+# WorkBuddy 项目数据（本地会话记忆，非缓存，不进版本库）
+.workbuddy/
