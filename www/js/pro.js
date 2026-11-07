@@ -171,6 +171,9 @@ export function mountReaderPro(ctx) {
     return '';
   }
   function syncPause() {
+    // 把阅读器控制条显隐同步到 #pro-root：两者是兄弟节点，CSS 无法用后代选择器关联。
+    const readerEl = $('reader');
+    if (readerEl && root) root.classList.toggle('pro-chrome', !readerEl.classList.contains('hide-chrome'));
     const reason = pauseReason();
     if (reason) {
       if (!pausedByUs) {

@@ -36,8 +36,10 @@
 
 - 📚 **多格式导入**：EPUB / PDF / TXT / MOBI / FB2 / HTML / DOCX，App 内原生解析，MOBI 无需借助 Calibre（AZW3/KFX 仍建议用 Calibre 转 EPUB）
 - 📖 **分页式阅读**：非滚动，按屏幕真实分页，接近纸质书体验
-- ⚡ **墨水屏友好**：默认翻页零动画、即时整屏刷新（Regal）规避残影；可在设置开启「翻书页动画」，手机端像翻书一样过渡
-- 🎨 **2 款主题皮肤**：墨水风（宣纸底·笔迹淡化翻页）/ 简约（米白底·整页水平滑动），设置页一点即换
+- ⚡ **墨水屏友好**：默认翻页零动画、按设置周期整屏刷新（Regal）规避残影；可在设置开启「翻书页动画」，手机端像翻书一样过渡
+- 🎨 **3 款主题皮肤**：墨水风（宣纸底·笔迹淡化翻页）/ 简约（米白底·整页水平滑动）/ 夜览（低亮度暖灰），阅读内 `Aa` 面板一点即换
+- 👁 **自动翻页系统**：定时 / 跟随你的翻页节奏 / **视线回扫**（读到页底、视线回到页首即翻页）。带校准、灵敏度、翻页前可取消预告、误翻一键撤销、状态灯与自动降级；摄像头帧严格端侧处理，默认关闭
+- 🧭 **阅读内快捷设置**：常驻进度条（可拖动跳章）、字号/行距/主题/亮度即时调整、首次引导、滑动与音量键翻页、跳转后一键返回原位置
 - 🧭 **底部导航 + 独立页面**：书架 / 统计 / 我的 / 设置 四页通过底部导航栏切换；**阅读统计与设置均为独立页面**（不再内嵌在阅读器里），设置页内置皮肤切换
 - ✍️ **标注与收藏语句**：阅读时选中任意文字即可「标注」（正文持久高亮，翻页/重进自动还原）或「收藏」（只存句子不改正文）；点高亮可删除或顺手收藏，底部「我的」按书分组汇总，支持类型筛选、跳回原文、删除，设置页也有入口
 - 🔤 **中英互译**：划词即译，可用 DeepSeek / 通义 / 本地 Ollama 等任意 OpenAI 兼容模型（详见下方「AI 引擎配置」），密钥仅存本地，默认关闭
@@ -70,6 +72,32 @@
 - **自动导读**（可选开关）：导入新书且已配置 AI 时，后台静默生成导读并缓存，打开即看。
 
 > 隐私与设计原则：**本地优先、零追踪**。AI 功能默认关闭；启用后也只有当你主动触发（生成/提问/解释/翻译）才会向你所填的接口地址发请求，书籍与结果始终只存你自己的设备。
+
+---
+
+## 👁 自动翻页与视线回扫（Pro）
+
+把「自动翻页」做成一个**可预期、可取消、可撤销、可暂停、可降级**的闭环，而不是一个孤立的 AI 开关：
+
+| 方式 | 触发 | 适用 |
+|------|------|------|
+| 定时 | 固定间隔（4–60 秒） | 解放双手、稳定可靠，所有设备可用 |
+| 跟随节奏 | 学习你最近几次手动翻页的间隔 | 阅读速度不均匀时更贴合 |
+| 视线回扫 | 视线在页底驻留 → 快速回到页首（return sweep） | 接近纸质书的自然翻页动作 |
+
+**为什么比「盯到底部就翻页」可靠**：低头沉思、看插图、走神都会让视线停在低处，单条件判定必然误翻。两阶段的「页底驻留 + 回扫」判据，配合连续帧确认、冷却时间、灵敏度调节与个人校准，把误触发挡在门外。
+
+**做得更全的地方**：
+- **可预期**：顶部状态灯实时说明「追踪中 / 已读到页底 / 准备翻页 / 已暂停 / 不支持」；翻页前弹出倒计时预告。
+- **可取消**：预告窗口内点一下屏幕即取消本次翻页；面板打开、划词选字、切后台时自动暂停。
+- **可撤销**：任何来源的自动翻页都能一键回到刚才那一页（手动翻页同样可撤销）。
+- **可校准**：先看页顶、再看页底各 1.5 秒，记录个人视线量程；灵敏度 1–5 档可调。
+- **可降级**：设备不支持、无摄像头或拒绝授权时，明确提示并自动切换为「定时」，绝不留下一个开了没反应的开关。
+- **隐私与耗电**：视频帧只在内存中降采样推理，**不上传、不保存、不写日志**；默认关闭，退出阅读器 / 切后台立即释放摄像头；约 11fps 取帧，不做逐帧 60fps 推理。
+
+**检测引擎是可插拔的**（`js/gaze.js`）：优先使用系统 `FaceDetector`（零额外体积）；把 MediaPipe `vision_bundle.mjs` + wasm + `face_landmarker.task` 放入 `www/js/vendor/mediapipe/` 即自动升级为虹膜级检测；无摄像头环境使用模拟源，便于自动化回归。之所以不把这些文件随包分发：wasm + 模型约 18MB，会让 3.8MB 的应用膨胀数倍，且在未经真机验证前不适合进正式包。需要虹膜级精度的用户可自行放置本地模型文件，应用会自动探测启用。
+
+> 视线翻页需要 Android 端 `CAMERA` 权限（默认不申请，仅在主动开启时请求）；PWA / 浏览器同样可用（浏览器自行弹权限）。纯血鸿蒙 NEXT 的 ArkWeb 若不支持 `getUserMedia`，会自动走降级路径。
 
 ---
 
@@ -220,7 +248,7 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 前端：原生 ES Modules（无打包构建）、IndexedDB、Service Worker（PWA）
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
-- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含冒烟 / 跨文件脚注 / 标注收藏三套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 冒烟 / 跨文件脚注 / 标注收藏四套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
 
 ---
 
@@ -230,7 +258,8 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 metasequoia-reader/
 ├── www/                            # Web 应用（PWA 入口，也是 Capacitor 的 webDir）
 │   ├── index.html                  # 单页结构：书架 / 阅读器 / 统计页 / 我的页 / 设置页 / 底部导航栏（阅读器内仍保留目录/书签/AI 侧滑面板）
-│   ├── css/style.css               # 墨水屏主题与全部样式（8 款可切换皮肤 / 翻书页 3D 动画 / Regal 整屏反色 / 纸感设计令牌）
+│   ├── css/style.css               # 墨水屏主题与全部样式（3 款皮肤 / 翻书页 3D 动画 / Regal 整屏反色 / 纸感设计令牌）
+│   ├── css/pro.css                 # Pro 层独立样式：进度条 / 状态灯 / 预告 / 撤销 / 快捷面板 / 夜览（可整体删除回退）
 │   ├── books/sample.js             # 内置示例书《阅读者手记》（无版权风险，用于演示）
 │   └── js/
 │       ├── app.js                  # 主控：书架渲染 / 分页翻页（含翻书页动画）/ 底部导航与独立页面切换 / 阅读计时打卡 / 面板与设置接线
@@ -241,7 +270,10 @@ metasequoia-reader/
 │       ├── ai.js                   # AI 能力：导读 / 选中即问解释 / 书中问答(RAG) / 人物脉络笔记 / 智能标签 / 段落双语
 │       ├── importers.js            # EPUB / TXT / PDF / MOBI / FB2 / HTML / DOCX 导入解析入口
 │       ├── mobidec.js              # 自研 MOBI 解析器（App 内直接解析，无需 Calibre）
-│       └── pdfview.js              # pdf.js 整页渲染（扫描型 PDF 整页显示）
+│       ├── pdfview.js              # pdf.js 整页渲染（扫描型 PDF 整页显示）
+│       ├── turn.js                 # 统一翻页编排层：串行化 / 冷却 / 预告取消 / 撤销 / 自动翻页节奏
+│       ├── gaze.js                 # 视线回扫信号源：可插拔检测引擎 / 校准 / 状态机 / 隐私护栏 / 降级
+│       └── pro.js                  # 阅读器交互增强：进度条 / Aa 快捷面板 / 首次引导 / 滑动与音量键 / 返回原位置
 ├── android/                        # Capacitor 生成的 Android 原生工程（包名 com.rayyang.metasequoia）
 ├── harmony/                        # Capacitor 鸿蒙（HarmonyOS NEXT）原生工程，产出 .hap（rawfile/www 由 cap sync 生成，未进仓库）
 ├── docs/                           # 界面示意图 mockup.svg + 真实截图 screenshots/
@@ -257,14 +289,15 @@ metasequoia-reader/
 ## ✅ 测试
 
 ```bash
-npm test                        # 打包闸门：冒烟 + 跨文件脚注 + 标注收藏，三套真实浏览器回归
-npm run test:smoke              # 书架按钮 / EPUB 导入 / 图片内联 / 分页 / 控制条
+npm test                        # 打包闸门：Pro 层 + 冒烟 + 跨文件脚注 + 标注收藏，四套真实浏览器回归
+npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
+npm run test:smoke              # 书架按钮 / EPUB 导入 / 图片内联 / 分页 / 控制条（样本书自动合成）
 npm run test:footnote           # 内存合成 EPUB：同文件/跨文件/图片式脚注、旧书兼容（6 用例）
 npm run test:marks              # 标注高亮持久化、收藏、我的页汇总/筛选/跳转/删除（11 用例）
 node test/regen-screenshots.mjs # 真实浏览器全页面截图，输出至 docs/screenshots/
 ```
 
-三套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
+四套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
 
 ---
 

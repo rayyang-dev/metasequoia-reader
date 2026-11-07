@@ -162,12 +162,13 @@ body[data-theme="night"] .page { background: var(--bg); }
 
 /* 只在阅读器内出现；离开阅读器（书架 / 设置 / 统计）时全部收起 */
 body:not(.reader-active) #pro-root { display: none !important; }
-/* 控制条显示时，进度条不能压住底栏按钮；chip 上移到控制条之上 */
-#reader:not(.hide-chrome) #pro-bar { pointer-events: none; }
-#reader:not(.hide-chrome) #pro-chip { bottom: 64px; }
+/* #pro-root 挂在 body 下、不是 #reader 的后代，因此不能用 `#reader xxx` 后代选择器。
+   pro.js 会把控制条显隐同步成 #pro-root.pro-chrome。 */
+#pro-root.pro-chrome #pro-bar { pointer-events: none; }
+#pro-root.pro-chrome #pro-chip { bottom: 64px; }
 /* 扩大点击热区只在「控制条隐藏」时启用，避免遮挡底部按钮 */
 #pro-bar::after { display: none; }
-#reader.hide-chrome #pro-bar::after { display: block; }
+#pro-root:not(.pro-chrome) #pro-bar::after { display: block; }
 
 /* 手机小屏：进度 chip 不遮挡正文热区 */
 @media (max-width: 360px) {

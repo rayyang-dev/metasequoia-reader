@@ -108,7 +108,8 @@ function clickableReport(sel) {
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const top = document.elementFromPoint(cx, cy);
     const covered = !(top === el || el.contains(top));
-    return { sel, exists: true, visible: true, w: Math.round(r.width), h: Math.round(r.height), covered };
+    return { sel, exists: true, visible: true, w: Math.round(r.width), h: Math.round(r.height), covered,
+      coveredBy: covered && top ? (top.id || top.className || top.tagName) : null };
   }, sel);
 }
 // 点 page-viewport 中央以唤出/收起控制条；点右侧翻下一页
@@ -197,9 +198,10 @@ try {
     await tapViewport('right');
     await wait(450);
   }
-  // 最后再唤出控制条确认按钮仍可被点中
-  await tapViewport('center');
-  await wait(300);
+  // 最后再确认按钮仍可被点中。新版状态机里「控制条显示时点中间」是收起，
+  // 因此按当前状态决定是否唤出，而不是无脑再点一次中间。
+  const chromeHidden = await page.evaluate(() => document.getElementById('reader').classList.contains('hide-chrome'));
+  if (chromeHidden) { await tapViewport('center'); await wait(300); }
   const btnNext2 = await clickableReport('#btn-next');
   report.steps.push({ name: '翻页至正文页（分页有文字）', foundText, pass: foundText });
   report.steps.push({ name: '连续翻页后 #btn-next 可点中', ...btnNext2, pass: btnNext2.exists && btnNext2.visible && !btnNext2.covered });
