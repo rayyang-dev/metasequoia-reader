@@ -1,4 +1,4 @@
-// 水杉 Nexus —— 能力层纯逻辑内核（零 DOM 副作用，可在 Node 中直接 import 单测）
+// 红杉 Nexus —— 能力层纯逻辑内核（零 DOM 副作用，可在 Node 中直接 import 单测）
 //
 // 设计原则：路线图里每一项都必须对应一个「可判定的行为契约」，而不是一个布尔开关。
 // UI 层（nexus.js）只负责把这里的结论渲染出来、把用户操作翻译成参数。
@@ -285,7 +285,7 @@ export function parseTheme(code) {
 }
 // #27 排版样例：用书里真实句子而非 Lorem ipsum，长度随字号变化
 export function layoutSample(o) {
-  const s = stripTags((o || {}).html) || '水杉阅读 · 一行真实正文，用来判断字号与行距是否合适。';
+  const s = stripTags((o || {}).html) || '红杉阅读 · 一行真实正文，用来判断字号与行距是否合适。';
   return s.slice(0, clamp(Math.round(120 / Math.max(1, num((o || {}).fontSize, 20) / 20)), 24, 120));
 }
 // #28 按书记忆动画：有按书值优先，否则回退全局

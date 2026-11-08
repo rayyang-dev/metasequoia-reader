@@ -1,4 +1,4 @@
-// 水杉 Plus —— 阅读器能力增强层（10 项改进 + 10 项新功能）
+// 红杉 Plus —— 阅读器能力增强层（10 项改进 + 10 项新功能）
 //
 // 设计约束（与 pro.js 一致）：
 //   * 只通过 ctx 注入的回调与主控通信，不直接改 ci/pi，不引入任何裸 @capacitor/* 导入
@@ -641,7 +641,7 @@ export function mountReaderPlus(ctx) {
     const md = core.buildExcerptMarkdown(Object.assign({ title: b.title, author: b.author }, m));
     const text = asMd ? md : core.buildExcerptMarkdown(Object.assign({ title: b.title, author: b.author }, m))
       .replace(/^#+\s*/gm, '').replace(/[*_`>]/g, '').replace(/^\s*-\s*/gm, '  ');
-    const name = `水杉摘录-${String(b.title || 'book').replace(/[\\/:*?"<>|]/g, '_').slice(0, 24)}.${asMd ? 'md' : 'txt'}`;
+    const name = `红杉摘录-${String(b.title || 'book').replace(/[\\/:*?"<>|]/g, '_').slice(0, 24)}.${asMd ? 'md' : 'txt'}`;
     shareOrDownload(name, text, asMd ? 'text/markdown' : 'text/plain').then((r) => {
       ctx.showToast && ctx.showToast(saveResultToast(r,
         `已导出 ${m.highlights.length + m.favorites.length + m.bookmarks.length} 条摘录`));
@@ -662,7 +662,7 @@ export function mountReaderPlus(ctx) {
     try { if (ctx.getAllBooks) books = await ctx.getAllBooks(); } catch (e) {}
     const payload = { kv, books };
     const text = core.serializeBackup(payload);
-    const name = `水杉备份-${new Date().toISOString().slice(0, 10)}.json`;
+    const name = `红杉备份-${new Date().toISOString().slice(0, 10)}.json`;
     const r = await shareOrDownload(name, text, 'application/json');
     ctx.showToast && ctx.showToast(saveResultToast(r, `已备份 ${books.length} 本书与本机设置`));
   }

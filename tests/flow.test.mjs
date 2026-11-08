@@ -1,4 +1,4 @@
-// 水杉 — 端到端流程自测：真实「导入 MOBI → 取章节文本 → 调用翻译」整链路（Node 环境）
+// 红杉 — 端到端流程自测：真实「导入 MOBI → 取章节文本 → 调用翻译」整链路（Node 环境）
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -14,7 +14,7 @@ function stripTags(s) { return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').tr
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) { pass++; console.log('  ✅ ' + m); } else { fail++; console.log('  ❌ ' + m); } }
 
-console.log('=== 水杉 端到端流程：导入 MOBI → 翻译 ===');
+console.log('=== 红杉 端到端流程：导入 MOBI → 翻译 ===');
 
 const buf = await readFile('tests/samples/test.mobi');
 const book = await mobidec.parseMobi(makeFile('test.mobi', buf));

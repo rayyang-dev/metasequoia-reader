@@ -1,4 +1,4 @@
-// 水杉 — EPUB 导入管线自测（Node 环境，跑真实 parseEpub 逻辑）
+// 红杉 — EPUB 导入管线自测（Node 环境，跑真实 parseEpub 逻辑）
 //
 // 目的：在交给浏览器之前，先在 Node 里「构造一个合法 EPUB → 走真实 parseEpub → 校验章节/TOC」。
 // 直接用 fflate 拼一个 EPUB3(NAV) 与一个 EPUB2(NCX) 的 zip 包，喂给 importers.js 的 parseEpub，
@@ -176,7 +176,7 @@ async function testOne(label, bytes, expectTitleFromToc) {
 }
 
 async function main() {
-  console.log('=== 水杉 EPUB 导入管线自测 ===');
+  console.log('=== 红杉 EPUB 导入管线自测 ===');
   await testOne('EPUB3（NAV 目录）', epub3(), true);
   await testOne('EPUB2（NCX 目录）', epub2(), true);
   console.log(`\n=== 结果：${passed} 通过 / ${failed} 失败 ===`);

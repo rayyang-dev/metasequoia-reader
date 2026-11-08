@@ -16,7 +16,7 @@
 
   <!-- top app bar -->
   <line x1="20" y1="70" x2="360" y2="70" stroke="#cfcfc8" stroke-width="1"/>
-  <!-- brand seal: 水杉 tree -->
+  <!-- brand seal: 红杉 tree -->
   <rect x="40" y="80" width="26" height="26" rx="6" fill="#2f6f7a"/>
   <path d="M53 83.25 L56.79 90.29 L54.63 90.29 L58.42 97.88 L47.58 97.88 L51.38 90.29 L49.21 90.29 Z" fill="#fff"/>
   <rect x="51.375" y="97.875" width="3.25" height="4.875" fill="#fff"/>

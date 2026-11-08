@@ -1,4 +1,4 @@
-// 水杉阅读 —— 主控逻辑
+// 红杉阅读 —— 主控逻辑
 import {
   loadSettings, saveSettings, DEFAULT_SETTINGS,
   putBook, getBook, deleteBook, listBooksMeta, getAllBooks,
@@ -62,13 +62,13 @@ const THEME_PREVIEW = {
 // 法律声明文案（隐私政策 / 用户协议 / 权限说明）。iOS 与华为两平台通用，纯本地静态内容，无服务器依赖。
 // 联系邮箱、生效日期等需按实际情况替换（下方以占位给出）。
 const LEGAL_EFFECTIVE_DATE = '2026-11-04';
-const LEGAL_CONTACT_EMAIL = 'metasequoia-dev@example.com'; // 待你替换为真实联系邮箱
+const LEGAL_CONTACT_EMAIL = 'sequoia-dev@example.com'; // 待你替换为真实联系邮箱
 const LEGAL_CONTENT = {
   privacy: {
     title: '隐私政策',
     html: `
       <p>生效日期：${LEGAL_EFFECTIVE_DATE}</p>
-      <p>水杉阅读（以下简称"本应用"）是一款<b>本地优先</b>的电子书阅读器。我们极其重视你的隐私，并遵循"数据最小化"原则。本政策说明我们如何处理信息。</p>
+      <p>红杉阅读（以下简称"本应用"）是一款<b>本地优先</b>的电子书阅读器。我们极其重视你的隐私，并遵循"数据最小化"原则。本政策说明我们如何处理信息。</p>
       <h2>一、我们收集的信息</h2>
       <p>本应用默认完全在你的设备本地运行，<b>不要求注册账号</b>，不收集任何个人信息即可使用核心阅读功能。保存在你设备上的数据仅包括：导入的书籍文件、阅读进度与书签、排版与主题等设置，以及在你主动启用 AI 功能时保存的第三方 API Key（仅存本机）。这些数据均保存在你的设备本地存储/应用沙盒中，<b>不会自动上传到任何服务器</b>（本应用没有后端服务器）。</p>
       <h2>二、AI 与联网功能</h2>
@@ -91,7 +91,7 @@ const LEGAL_CONTENT = {
     title: '用户协议',
     html: `
       <p>生效日期：${LEGAL_EFFECTIVE_DATE}</p>
-      <p>欢迎使用水杉阅读。使用本应用即表示你同意以下条款。</p>
+      <p>欢迎使用红杉阅读。使用本应用即表示你同意以下条款。</p>
       <h2>一、软件许可</h2>
       <p>在遵守本协议的前提下，我们授予你一项<b>非独占、可撤销</b>的有限许可，允许你在自有设备上为个人非商业目的安装与使用本应用。</p>
       <h2>二、使用规范</h2>

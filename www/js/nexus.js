@@ -1,4 +1,4 @@
-// 水杉 Nexus —— 能力层 UI / 编排（v1.2.0）
+// 红杉 Nexus —— 能力层 UI / 编排（v1.2.0）
 //
 // 与 Pro / Plus / Stats 同构：独立 #nexus-root，只通过 ctx 回调与主控通信。
 // 所有可判定行为都在 nexus-core.js；本文件只做 DOM、事件、持久化与编排。
@@ -346,7 +346,7 @@ export function mountReaderNexus(ctx) {
     if (btn.id === 'nx-note-export') {
       const notes = core.filterExcerpts(read(LS.notes, []), { q: ($('nx-note-q') || {}).value || '' });
       const html = core.buildBooklistHtml(metasCache, notes, '我的摘录');
-      downloadHtml('水杉摘录.html', html); showToast(`已导出 ${notes.length} 条摘录`); return;
+      downloadHtml('红杉摘录.html', html); showToast(`已导出 ${notes.length} 条摘录`); return;
     }
 
     // 书架：标签筛选 / 模式 / 回收站 / 去重 / 书单导出
@@ -366,7 +366,7 @@ export function mountReaderNexus(ctx) {
       showToast(r.groups > 0 ? `发现 ${r.groups} 组重复，保留章节更全的版本` : '未发现重复书籍'); return;
     }
     if (btn.id === 'nx-export-booklist') {
-      await loadMetas(); downloadHtml('水杉书单.html', core.shareListHtml(metasCache)); showToast('书单已导出'); return;
+      await loadMetas(); downloadHtml('红杉书单.html', core.shareListHtml(metasCache)); showToast('书单已导出'); return;
     }
     if (d.openBook) { openBook(d.openBook, { ci: 0, pi: 0 }); setOpen(false); return; }
 
@@ -381,7 +381,7 @@ export function mountReaderNexus(ctx) {
       showToast(`专注开始：${cfg.focusMin} 分钟`); tickFocus(); return;
     }
     if (btn.id === 'nx-stats-csv') {
-      await loadMetas(); downloadText('水杉统计.csv', core.statsCsv(getStats(), metasCache), 'text/csv'); showToast('统计已导出'); return;
+      await loadMetas(); downloadText('红杉统计.csv', core.statsCsv(getStats(), metasCache), 'text/csv'); showToast('统计已导出'); return;
     }
 
     // 设置
@@ -410,7 +410,7 @@ export function mountReaderNexus(ctx) {
     if (btn.id === 'nx-backup') {
       const books = await getBooks();
       const payload = { version: '1.2.0', exportedAt: now().toISOString(), books, settings: cfg, progress: {}, notes: read(LS.notes, []) };
-      downloadText('水杉备份.json', JSON.stringify(payload), 'application/json'); showToast('备份已导出'); return;
+      downloadText('红杉备份.json', JSON.stringify(payload), 'application/json'); showToast('备份已导出'); return;
     }
     if (btn.id === 'nx-privacy') {
       const r = core.privacyReport({ permissions: [], networkTargets: [] });

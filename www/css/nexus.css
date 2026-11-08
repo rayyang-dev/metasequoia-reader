@@ -1,4 +1,4 @@
-/* 水杉 Nexus —— 能力层独立样式（v1.2.0）
+/* 红杉 Nexus —— 能力层独立样式（v1.2.0）
    约束：零 animation / transition（墨水屏原则）；主题自适应；面板初始 hidden，
    绝不新增遮挡控制条按钮的 fixed 浮层（入口复用 #pro-chip）。 */
 

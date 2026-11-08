@@ -1,4 +1,4 @@
-// 水杉 Plus —— 纯逻辑内核
+// 红杉 Plus —— 纯逻辑内核
 //
 // 这一层不碰 DOM（模块级零副作用），只放「可判定、可单测」的能力：
 //   白名单净化 / 位置锚点 / 全文搜索 / 章末停 / 自适应 Regal / 有效阅读 /
@@ -334,7 +334,7 @@ export function parseBackup(text) {
   let obj;
   try { obj = JSON.parse(String(text)); } catch (e) { throw new Error('备份文件不是合法 JSON'); }
   if (!obj || obj.app !== 'ink-reader' || !obj.data || typeof obj.data !== 'object') {
-    throw new Error('不是水杉阅读的备份文件');
+    throw new Error('不是红杉阅读的备份文件');
   }
   return obj.data;
 }

@@ -1,4 +1,4 @@
-// 水杉 Metasequoia — 真实页面截图（puppeteer-core 版，替代原 Playwright 脚本）
+// 红杉 Sequoia — 真实页面截图（puppeteer-core 版，替代原 Playwright 脚本）
 // 启动本地静态服务器托管 www → 注入种子书/统计/设置 → 逐页导航并截图到 docs/screenshots/
 // 运行：node test/regen-screenshots.mjs
 import { createServer } from 'node:http';

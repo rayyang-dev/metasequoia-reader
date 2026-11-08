@@ -1,4 +1,4 @@
-// 水杉 Metasequoia —— 全格式导入综合冒烟测试（puppeteer-core + 系统 Chrome）
+// 红杉 Sequoia —— 全格式导入综合冒烟测试（puppeteer-core + 系统 Chrome）
 // 覆盖 7 种格式：TXT / EPUB / PDF / MOBI / FB2 / HTML / DOCX
 // 对每种格式：上传 → 断言书架新增 → 打开阅读器 → 断言正文分页渲染 → 断言 TOC 章节数 → 全程无 JS 报错
 // 运行：node test/import-all.mjs

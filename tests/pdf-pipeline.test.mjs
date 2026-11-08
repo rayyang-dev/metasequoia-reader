@@ -1,4 +1,4 @@
-// 水杉 — PDF 导入管线自测（Node 环境，不依赖浏览器）
+// 红杉 — PDF 导入管线自测（Node 环境，不依赖浏览器）
 //
 // 目的：在交给浏览器/预览之前，先在 Node 里把「导入 → 解析 → 渲染单页 → 大纲映射 → 存储兜底」
 // 整条链路跑通，证明文件本身可被 pdf.js 正确解析，且我们的解析逻辑不会抛错。
@@ -40,7 +40,7 @@ function hashStr(s) {
 }
 
 async function main() {
-  console.log('=== 水杉 PDF 导入管线自测 ===');
+  console.log('=== 红杉 PDF 导入管线自测 ===');
   console.log(`目标文件: ${PDF_PATH}`);
 
   const pdfjs = await import(PDFJS_PATH);

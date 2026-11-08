@@ -67,7 +67,7 @@ struct Index {
                 event.result.handleFileList(uris);
               }
             }).catch((err: BusinessError) => {
-              console.error(`[metasequoia] 文件选择失败 code=${err.code} msg=${err.message}`);
+              console.error(`[sequoia] 文件选择失败 code=${err.code} msg=${err.message}`);
               if (event && event.result) { event.result.handleFileList([]); }
             });
             return true;

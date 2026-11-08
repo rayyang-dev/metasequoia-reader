@@ -1,4 +1,4 @@
-// 水杉 Metasequoia —— headless 冒烟测试（puppeteer-core + 系统 Chrome）
+// 红杉 Sequoia —— headless 冒烟测试（puppeteer-core + 系统 Chrome）
 // 用途：每次改动后跑一遍，作为“打包前闸门”，验证：
 //   ① app.js 正常加载、无致命报错（按钮接线正常）
 //   ② 书架按钮可点中（不被遮挡）

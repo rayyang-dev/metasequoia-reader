@@ -1,4 +1,4 @@
-// 水杉 Metasequoia —— PDF 浏览冒烟测试（puppeteer-core + 系统 Chrome）
+// 红杉 Sequoia —— PDF 浏览冒烟测试（puppeteer-core + 系统 Chrome）
 // 用途：逐本导入用户提供的 PDF，验证 ① 导入成功 ② 阅读器打开 ③ 首页渲染为图片（非“渲染失败”）④ 翻一页后仍渲染。
 // 运行：node test/pdf-smoke.mjs
 import puppeteer from 'puppeteer-core';

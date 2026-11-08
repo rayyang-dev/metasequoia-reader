@@ -1,4 +1,4 @@
-// 水杉阅读 —— Service Worker（离线缓存应用外壳）
+// 红杉阅读 —— Service Worker（离线缓存应用外壳）
 // 缓存版本号：每次改动 ASSETS 列表里的任意文件（尤其 js/app.js 等自身脚本）都必须 +1，
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
 const CACHE = 'inkreader-v14';

@@ -1,11 +1,11 @@
-// 一次性脚本：把水杉 Metasequoia 自有源码整理为软著要求的「源代码」提交件。
+// 一次性脚本：把红杉 Sequoia 自有源码整理为软著要求的「源代码」提交件。
 // 规则：前 30 页 + 后 30 页，每页 ≥ 50 行（末页可不足），含页眉软件名/版本/页码。
 // 运行：node docs/ruanzhu/gen-source.js  ->  生成 docs/ruanzhu/源代码整理.txt
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SOFT = '水杉 Metasequoia';
+const SOFT = '红杉 Sequoia';
 const VER = 'V1.0.0';
 
 // 按顺序纳入「自有」源码（排除第三方 vendor / node_modules / 构建产物）
