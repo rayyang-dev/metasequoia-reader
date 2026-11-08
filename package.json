@@ -4,7 +4,7 @@
   "description": "",
   "main": "sw.js",
   "scripts": {
-    "test": "node test/pro.mjs && node test/ink-flip.mjs && node test/plus.mjs && node test/stats.mjs && node test/nexus.mjs && node test/smoke.mjs && node test/footnote.mjs && node test/marks.mjs",
+    "test": "node test/pro.mjs && node test/ink-flip.mjs && node test/plus.mjs && node test/stats.mjs && node test/nexus.mjs && node test/gaze.mjs && node test/smoke.mjs && node test/footnote.mjs && node test/marks.mjs",
     "test:pro": "node test/pro.mjs",
     "test:plus": "node test/plus.mjs",
     "test:stats": "node test/stats.mjs",

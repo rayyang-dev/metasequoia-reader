@@ -84,6 +84,12 @@ export function mountReaderPro(ctx) {
         <div class="pro-row"><span>视线灵敏度</span><div class="pro-ctl">
           <input id="pro-sens" type="range" min="1" max="5" step="1" value="3" aria-label="视线灵敏度" />
           <span class="pro-val" id="pro-sens-val">3</span></div></div>
+        <div class="pro-row"><span>视线引擎</span><div class="pro-ctl">
+          <select id="pro-gaze-engine" aria-label="视线检测引擎">
+            <option value="auto">自动（真实·端侧）</option>
+            <option value="sim">演示（模拟视线）</option>
+          </select>
+        </div></div>
         <div class="pro-row"><span>状态</span><div class="pro-ctl">
           <span id="pro-engine">引擎：未启动</span>
           <button id="pro-calibrate" disabled>校准</button>
@@ -91,7 +97,7 @@ export function mountReaderPro(ctx) {
         <p class="pro-note">
           <b>视线翻页</b>：读到页底后，视线回到页首（回扫）即翻下一页；翻页前有预告，点一下可取消，误翻可撤销。<br />
           <b>隐私</b>：开启后仅调用前置摄像头做<b>本机端侧</b>检测，视频帧不上传、不保存、不写入日志；关闭 / 退出阅读器 / 切到后台立即释放摄像头。<br />
-          <b>降级</b>：设备不支持或拒绝授权时，自动切换为「定时」，并在状态栏说明原因。<b>跟随节奏</b>会学习你最近几次手动翻页的间隔。
+          <b>降级</b>：设备不支持或拒绝授权时，自动切换为「定时」，并在状态栏说明原因。<b>跟随节奏</b>会学习你最近几次手动翻页的间隔。<b>演示</b>：若设备无真实检测能力，可在「视线引擎」选「演示（模拟视线）」，它会自动注入回扫动作，让你在无摄像头时也能端到端看到 视线→翻页 链路真实生效（明确标注为模拟，非真实检测）。
         </p>
       </div>
 
@@ -280,6 +286,8 @@ export function mountReaderPro(ctx) {
     $('pro-confirm-val').textContent = $('pro-confirm').value + 'ms';
     $('pro-sens').value = String(clamp(num(st.gazeSensitivity, 3), 1, 5));
     $('pro-sens-val').textContent = $('pro-sens').value;
+    const ge = $('pro-gaze-engine');
+    if (ge) ge.value = (st.gazeEngine === 'sim' ? 'sim' : 'auto');
     setGazeStatus({ phase: gaze.getPhase(), engine: gaze.getEngine(), simulated: gaze.isSimulated() });
   }
 
@@ -352,6 +360,12 @@ export function mountReaderPro(ctx) {
     renderAuto();
   });
   $('pro-sens').addEventListener('input', (e) => { setSetting('gazeSensitivity', Number(e.target.value)); renderAuto(); });
+  $('pro-gaze-engine').addEventListener('change', (e) => {
+    setSetting('gazeEngine', e.target.value === 'sim' ? 'sim' : 'auto');
+    // 若正在视线模式，立即以新引擎重新进入；否则仅记住设置，下次开启生效。
+    if (runtimeMode === 'gaze') { gaze.stop(); setMode('gaze'); }
+    renderAuto();
+  });
   $('pro-calibrate').addEventListener('click', () => {
     closePanel();
     if (gaze.calibrate()) {

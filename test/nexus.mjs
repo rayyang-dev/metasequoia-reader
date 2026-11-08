@@ -259,8 +259,8 @@ const nx = fs.readFileSync(path.join(ROOT, 'js/nexus.js'), 'utf8');
 const nxCss = fs.readFileSync(path.join(ROOT, 'css/nexus.css'), 'utf8');
 const roadmap = fs.readFileSync('docs/roadmap-200.md', 'utf8');
 
-check('SW 升到 inkreader-v13 / PREV_CACHE v12',
-  /const CACHE = 'inkreader-v13'/.test(sw) && /const PREV_CACHE = 'inkreader-v12'/.test(sw));
+check('SW 升到 inkreader-v14 / PREV_CACHE v13',
+  /const CACHE = 'inkreader-v14'/.test(sw) && /const PREV_CACHE = 'inkreader-v13'/.test(sw));
 check('SW ASSETS 补齐 nexus.css / nexus.js / nexus-core.js',
   /'css\/nexus\.css'/.test(sw) && /'js\/nexus\.js'/.test(sw) && /'js\/nexus-core\.js'/.test(sw));
 check('index.html 引入 nexus.css', /css\/nexus\.css/.test(html));
@@ -278,7 +278,7 @@ check('删书文案不再宣称「不可恢复」', /30 天内可在/.test(app))
 check('CSS 零动画（墨水屏原则）', !/animation\s*:|transition\s*:/.test(nxCss));
 check('package.json 纳入 test:nexus 且 npm test 含第八套',
   !!pkg.scripts['test:nexus'] && /test\/nexus\.mjs/.test(pkg.scripts.test));
-check('版本升到 versionCode 22 / 1.2.0', /versionCode 22/.test(gradle) && /versionName "1\.2\.0"/.test(gradle));
+check('版本升到 versionCode 23 / 1.3.0', /versionCode 23/.test(gradle) && /versionName "1\.3\.0"/.test(gradle));
 const roadRows = roadmap.match(/^\| (\d{1,3}) \|/gm) || [];
 check('路线图文件含 100 个编号项与落地矩阵',
   roadRows.length === 100 && /落地矩阵/.test(roadmap));

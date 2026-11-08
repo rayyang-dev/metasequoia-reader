@@ -97,7 +97,7 @@
 - **可降级**：设备不支持、无摄像头或拒绝授权时，明确提示并自动切换为「定时」，绝不留下一个开了没反应的开关。
 - **隐私与耗电**：视频帧只在内存中降采样推理，**不上传、不保存、不写日志**；默认关闭，退出阅读器 / 切后台立即释放摄像头；约 11fps 取帧，不做逐帧 60fps 推理。
 
-**检测引擎是可插拔的**（`js/gaze.js`）：优先使用系统 `FaceDetector`（零额外体积）；把 MediaPipe `vision_bundle.mjs` + wasm + `face_landmarker.task` 放入 `www/js/vendor/mediapipe/` 即自动升级为虹膜级检测；无摄像头环境使用模拟源，便于自动化回归。之所以不把这些文件随包分发：wasm + 模型约 18MB，会让 3.8MB 的应用膨胀数倍，且在未经真机验证前不适合进正式包。需要虹膜级精度的用户可自行放置本地模型文件，应用会自动探测启用。
+**检测引擎是可插拔的**（`js/gaze.js`）：优先探测本地端侧模型（把 MediaPipe `vision_bundle.mjs` + wasm + `face_landmarker.task` 放入 `www/js/vendor/mediapipe/` 即自动升级为虹膜级检测）；其次使用系统 `FaceDetector`；两者皆不可用时**明确上报「不支持」并诚实降级为定时翻页**（绝不留下「开了却永远不翻页」的死开关）。另提供显式「演示（模拟视线）」引擎：自驱动注入回扫动作，让你在无摄像头时也能端到端看到「视线→翻页」链路真实生效（明确标注为模拟，非真实检测）。之所以不把 MediaPipe 文件随包分发：wasm + 模型约 18MB，会让 3.8MB 的应用膨胀数倍，且在未经真机验证前不适合进正式包；需要虹膜级精度的用户可自行放置本地模型文件，应用会自动探测启用。
 
 > 视线翻页需要 Android 端 `CAMERA` 权限（默认不申请，仅在主动开启时请求）；PWA / 浏览器同样可用（浏览器自行弹权限）。纯血鸿蒙 NEXT 的 ArkWeb 若不支持 `getUserMedia`，会自动走降级路径。
 
@@ -321,7 +321,7 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 前端：原生 ES Modules（无打包构建）、IndexedDB、Service Worker（PWA）
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
-- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / Plus 层 / 统计仪表盘 / Nexus 200 项能力 / 冒烟 / 跨文件脚注 / 标注收藏 八套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / Plus 层 / 统计仪表盘 / Nexus 200 项能力 / 视线回扫 / 冒烟 / 跨文件脚注 / 标注收藏 九套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
 - 翻页动画：Web Animations API + 纯几何 SVG（变宽笔锋 / 六层叠墨 / 飞白 mask），零 SVG 滤镜、零第三方依赖、不打包大模型
 
 ---
@@ -371,8 +371,9 @@ metasequoia-reader/
 ## ✅ 测试
 
 ```bash
-npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 统计仪表盘 + Nexus 200 项能力 + 冒烟 + 跨文件脚注 + 标注收藏，八套真实浏览器回归
+npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 统计仪表盘 + Nexus 200 项能力 + 视线回扫 + 冒烟 + 跨文件脚注 + 标注收藏，九套真实浏览器回归
 npm run test:nexus              # Nexus 能力层：200 项行为契约 + 真实 App 集成（243 用例）
+npm run test:gaze               # 视线回扫：诚实降级 + 回扫判定纯函数确定性回归（7 用例）
 npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
 npm run test:ink                # 水墨翻页：留白 / 变宽笔锋 / 六层叠墨 / 飞白 / 换页因果 / 异常清理 / 真实 App 集成（46 用例）
 npm run test:plus               # Plus 层：白名单净化 / 锚点 / 搜索 / 决策函数 / 双页 / 真实 App 集成（94 用例）
@@ -384,7 +385,7 @@ npm run test:marks              # 标注高亮持久化、收藏、我的页汇�
 node test/regen-screenshots.mjs # 真实浏览器全页面截图，输出至 docs/screenshots/
 ```
 
-七套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`stats.mjs` 的纯函数部分直接在 Node 侧 import（同时验证模块顶层零 DOM 副作用），集成部分会注入一段三章短文本书，真实点击「下一页」跨章，断言阅读页标题与目录高亮始终一致。`ink-flip.mjs` 会自行拉起 `test/serve.mjs` 静态服务加载预览页，断言笔触几何、换页回调次数与动画清理，`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，均不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
+八套浏览器回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；视线回扫回归（`gaze.mjs`）为纯 Node 侧测试，锁定「无真实引擎时诚实降级」与回扫判定纯函数，不依赖计时器/帧率。`stats.mjs` 的纯函数部分直接在 Node 侧 import（同时验证模块顶层零 DOM 副作用），集成部分会注入一段三章短文本书，真实点击「下一页」跨章，断言阅读页标题与目录高亮始终一致。`ink-flip.mjs` 会自行拉起 `test/serve.mjs` 静态服务加载预览页，断言笔触几何、换页回调次数与动画清理，`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，均不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
 
 ---
 

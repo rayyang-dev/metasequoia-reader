@@ -108,7 +108,7 @@ function createWebFaceDetector() {
 function createSimulatedDetector() {
   let value = null;
   return {
-    name: '模拟视线（调试）',
+    name: '模拟视线（演示）',
     detect() {
       if (value == null) return null;
       return { y: value, confidence: 0.9 };
@@ -120,12 +120,56 @@ function createSimulatedDetector() {
 
 async function pickDetector(prefer) {
   if (prefer === 'sim') return createSimulatedDetector();
-  if (prefer === 'system') return createWebFaceDetector() || createSimulatedDetector();
+  if (prefer === 'system') {
+    // system 明确要求系统能力：无则显式返回 null，由上层降级，绝不静默退回模拟源
+    return createWebFaceDetector() || null;
+  }
+  // auto：优先端侧模型，其次系统人脸检测；两者皆无时显式返回 null（不可用）。
+  // 关键修正：绝不静默退回「模拟源」——模拟源只用于显式 sim 模式（测试 / 演示），
+  // 否则会出现「开了视线翻页却永远不翻页」的死开关（之前正是这个 bug：
+  // 所有平台既无内置模型又无 window.FaceDetector，一律静默退回模拟源后零信号）。
   try {
     const mp = await createMediaPipeDetector();
     if (mp) return mp;
   } catch (e) { /* 模型缺失 / 版本不匹配 / WASM 不支持：静默降级 */ }
-  return createWebFaceDetector() || createSimulatedDetector();
+  const fd = createWebFaceDetector();
+  if (fd) return fd;
+  return null;
+}
+
+// ---------- 回扫判定（纯函数，与运行时状态机解耦，便于确定性回归） ----------
+// s = { phase, bottomSince, bottomY, lastFireAt }；rangeObj = { top, bottom, span }。
+// 返回新的状态 + 是否触发翻页(fire) + 需要上报的状态文案(detail)。
+// 不依赖计时器 / 帧率 / DOM，因此可在 Node 中确定性测试。
+export function gazeSweepDecision(s, y, cfg, rangeObj, t) {
+  const { top, bottom, span } = rangeObj;
+  const k = (cfg.sensitivity - 1) / 4;
+  const bottomLine = bottom - span * (0.24 - k * 0.10);
+  const topLine = top + span * (0.38 - k * 0.10);
+  const sweepNeeded = span * (0.60 - k * 0.22);
+  const dwell = cfg.dwellMs * (1.35 - k * 0.5);
+  const sweepWindow = 820 - k * 160;
+  let { phase, bottomSince, bottomY, lastFireAt } = s;
+  let fire = false, detail = '';
+  if (t - lastFireAt < cfg.cooldownMs) return { phase, bottomSince, bottomY, lastFireAt, fire: false, detail: '' };
+  if (phase === 'bottom') {
+    if (t - bottomSince > 9000) { phase = 'tracking'; return { phase, bottomSince: 0, bottomY: 0, lastFireAt, fire: false, detail: '已重置，继续阅读' }; }
+    const drop = bottomY - y;
+    if (drop >= sweepNeeded && y <= topLine && t - bottomSince <= sweepWindow + dwell) {
+      phase = 'sweep'; lastFireAt = t;
+      return { phase, bottomSince, bottomY, lastFireAt, fire: true, detail: '检测到回扫，准备翻页' };
+    }
+    if (y < bottomLine && t - bottomSince > sweepWindow) { phase = 'tracking'; }
+    return { phase, bottomSince, bottomY, lastFireAt, fire: false, detail: '' };
+  }
+  if (y >= bottomLine) {
+    if (!bottomSince) bottomSince = t;
+    bottomY = Math.max(bottomY, y);
+    if (t - bottomSince >= dwell) { phase = 'bottom'; detail = '已读到页底，回看页首即可翻页'; }
+  } else {
+    bottomSince = 0; bottomY = 0;
+  }
+  return { phase, bottomSince, bottomY, lastFireAt, fire: false, detail };
 }
 
 // ---------- 视线引擎 ----------
@@ -160,6 +204,7 @@ export function createGazeEngine(opts) {
   let cal = null;              // { top, bottom }
   let calib = null;            // 校准采集中：{ phase, samples, startedAt }
   let simInjected = false;
+  let demoTimer = null;        // 显式 sim（演示）模式下的自驱动回扫定时器
 
   let lastEmitKey = '';
   function emit(detail) {
@@ -175,7 +220,8 @@ export function createGazeEngine(opts) {
     return {
       sensitivity: CLAMP(Number(c.gazeSensitivity) || 3, 1, 5),
       dwellMs: Number(c.gazeDwellMs) || 320,
-      cooldownMs: Number(c.gazeCooldownMs) || 1600,
+      // 演示（sim）模式用更短的冷却，让翻页节奏清晰可见；真实检测仍走配置值。
+      cooldownMs: simInjected ? 1000 : (Number(c.gazeCooldownMs) || 1600),
       sampleMs: Number(c.gazeSampleMs) || 90,
       calibration: c.gazeCalibration || null,
       prefer: c.gazeEngine || 'auto',
@@ -210,32 +256,41 @@ export function createGazeEngine(opts) {
     emit('正在初始化端侧视线检测');
     const cfg = config();
     try {
-      detector = await pickDetector(cfg.prefer);
-      engineName = detector.name;
-      simInjected = !!detector.simulate;
-      cal = cfg.calibration || null;
+    detector = await pickDetector(cfg.prefer);
+    if (!detector) {
+      // 诚实降级：无端侧模型且无系统人脸检测时，明确上报不可用，
+      // 由上层（pro.setMode）降级为「定时自动翻页」并弹出说明，绝不留下死开关。
+      throw new Error('本设备暂无可用视线检测引擎（未内置端侧模型且系统不支持人脸检测），已降级');
+    }
+    engineName = detector.name;
+    simInjected = !!detector.simulate;
+    cal = cfg.calibration || null;
 
-      if (!simInjected) {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('当前环境不支持摄像头');
-        }
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } },
-          audio: false,
-        });
-        video = makeVideo();
-        video.srcObject = stream;
-        await video.play();
-        canvas = document.createElement('canvas');
-        canvas.width = 160; canvas.height = 120;
-        ctx = canvas.getContext('2d', { willReadFrequently: false });
+    if (!simInjected) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('当前环境不支持摄像头');
       }
-      running = true;
-      paused = false;
-      phase = 'tracking';
-      emit('视线追踪中 · 视频帧仅在本机内存处理');
-      loop();
-      return { ok: true, engine: engineName };
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } },
+        audio: false,
+      });
+      video = makeVideo();
+      video.srcObject = stream;
+      await video.play();
+      canvas = document.createElement('canvas');
+      canvas.width = 160; canvas.height = 120;
+      ctx = canvas.getContext('2d', { willReadFrequently: false });
+    } else {
+      // 显式 sim（演示）模式：自驱动注入「页底驻留 -> 回看页首」的合成回扫，
+      // 让用户在任何无摄像头环境也能端到端看到 视线 -> 翻页 链路真实生效。
+      startDemo();
+    }
+    running = true;
+    paused = false;
+    phase = 'tracking';
+    emit(simInjected ? '演示模式 · 模拟视线（非真实检测）' : '视线追踪中 · 视频帧仅在本机内存处理');
+    loop();
+    return { ok: true, engine: engineName };
     } catch (e) {
       phase = 'unavailable';
       engineName = engineName || '不可用';
@@ -321,48 +376,37 @@ export function createGazeEngine(opts) {
   }
 
   function evaluate(y, cfg, t) {
-    if (t - lastFireAt < cfg.cooldownMs) return;
-    const { top, bottom, span } = range();
-    // 灵敏度 1(最保守)..5(最灵敏)：影响「页底」判定线、回扫幅度与驻留时长
-    const k = (cfg.sensitivity - 1) / 4;
-    const bottomLine = bottom - span * (0.24 - k * 0.10);
-    const topLine = top + span * (0.38 - k * 0.10);
-    const sweepNeeded = span * (0.60 - k * 0.22);
-    const dwell = cfg.dwellMs * (1.35 - k * 0.5);
-    const sweepWindow = 620 - k * 160;
-
-    if (phase === 'bottom') {
-      if (t - bottomSince > 9000) { phase = 'tracking'; emit('已重置，继续阅读'); return; }
-      const drop = bottomY - y;
-      if (drop >= sweepNeeded && y <= topLine && t - bottomSince <= sweepWindow + dwell) {
-        phase = 'sweep';
-        lastFireAt = t;
-        emit('检测到回扫，准备翻页');
-        try { onSignal('return-sweep'); } catch (e) {}
-        setTimeout(() => { if (running && phase === 'sweep') { phase = 'tracking'; emit('视线追踪中'); } }, cfg.cooldownMs);
-        return;
-      }
-      // 视线只回到中部、没有构成回扫（往回看了几行）：等回扫窗口过去再复位。
-      // 旧写法在这里判断「y 还很深」就复位，会让刚进入的 bottom 状态被立刻清掉，
-      // 回扫因此永远识别不到 —— 状态机必须让「已在页底」稳定驻留。
-      if (y < bottomLine && t - bottomSince > sweepWindow) {
-        phase = 'tracking';
-        emit('视线追踪中');
-      }
-      return;
+    const r = gazeSweepDecision({ phase, bottomSince, bottomY, lastFireAt }, y, cfg, range(), t);
+    phase = r.phase; bottomSince = r.bottomSince; bottomY = r.bottomY; lastFireAt = r.lastFireAt;
+    if (r.detail) emit(r.detail);
+    if (r.fire) {
+      try { onSignal('return-sweep'); } catch (e) {}
+      // 仅留短暂宽限期避免同一次回扫重复识别；冷却由 lastFireAt 把关，不冻结状态机。
+      setTimeout(() => { if (running && phase === 'sweep') { phase = 'tracking'; emit('视线追踪中'); } }, Math.min(cfg.cooldownMs, 350));
     }
+  }
 
-    if (y >= bottomLine) {
-      if (!bottomSince) bottomSince = t;
-      bottomY = Math.max(bottomY, y);
-      if (t - bottomSince >= dwell) {
-        phase = 'bottom';
-        emit('已读到页底，回看页首即可翻页');
-      }
-    } else {
-      bottomSince = 0;
-      bottomY = 0;
-    }
+  // 演示（sim）模式的自驱动回扫：周期性注入「页底驻留 -> 跳回页首」，让无摄像头环境
+  // 也能验证 视线 -> 翻页 全链路。仅用于演示，不冒充真实检测。
+  function startDemo() {
+    stopDemo();
+    let step = 0; // 0=在页底驻留；1=已跳回页首
+    const tick = () => {
+      if (!running || paused || !simInjected) return;
+      const { top, bottom } = range();
+      // 注入足够极端的页首值：引擎对视线值做移动平均，若回看值不够低，
+      // 平滑后的数值会晚于回扫窗口才越过 topLine，导致「该翻不翻」。
+      if (step === 0) detector.simulate(Math.min(0.98, bottom + 0.12));
+      else detector.simulate(Math.max(0.02, top - 0.20));
+      step = step ? 0 : 1;
+      // 页底驻留需 > dwell(352ms) 且足够长以便被采样观测到（~200ms+），
+      // 同时又要在回扫窗口内回到页首。650ms 兼顾可观测性与窗口余量。
+      demoTimer = setTimeout(tick, step === 0 ? 650 : 450);
+    };
+    demoTimer = setTimeout(tick, 380);
+  }
+  function stopDemo() {
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
   }
 
   // pause 默认只停止取帧（面板/选字这类秒级暂停，避免反复申请权限造成闪烁）；
@@ -372,12 +416,13 @@ export function createGazeEngine(opts) {
     paused = true;
     phase = 'paused';
     cancelFrame();
+    if (simInjected) stopDemo();
     if (release) releaseStream();
     emit(reason || '已暂停');
   }
   async function resume() {
     if (!running || !paused) return;
-    if (simInjected) { paused = false; phase = 'tracking'; emit('视线追踪中'); loop(); return; }
+    if (simInjected) { paused = false; phase = 'tracking'; emit('演示模式 · 模拟视线（非真实检测）'); startDemo(); loop(); return; }
     try {
       if (!stream) {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -402,6 +447,7 @@ export function createGazeEngine(opts) {
     if (video) { try { video.srcObject = null; } catch (e) {} }
   }
   function cleanup() {
+    stopDemo();
     running = false;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     if (frameHandle && video && video.cancelVideoFrameCallback) {
