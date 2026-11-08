@@ -14,12 +14,23 @@ import android.webkit.WebChromeClient.FileChooserParams;
 import android.net.Uri;
 import android.content.Intent;
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.util.Base64;
 import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class MainActivity extends BridgeActivity {
     private static final int FILECHOOSER_REQ = 1001;
@@ -28,6 +39,11 @@ public class MainActivity extends BridgeActivity {
     private PermissionRequest pendingCameraRequest;
     // 由 web 层在进入 / 退出阅读器时同步，用于决定音量键是否作为翻页键消费。
     private volatile boolean readerActive = false;
+    // Plus 层：本机 TTS（Android WebView 常缺 Web Speech API）与文件导出（WebView 不处理 blob: 下载）。
+    private TextToSpeech tts;
+    private volatile boolean ttsReady = false;
+    private String pendingSpeak;
+    private float pendingRate = 1f;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,6 +61,127 @@ public class MainActivity extends BridgeActivity {
         wv.setWebChromeClient(new ReaderChromeClient(bridge, this));
         // 暴露原生接口给 JS：屏幕常亮 + 阅读器激活状态（音量键翻页的判断依据）
         wv.addJavascriptInterface(new ScreenOnBridge(this), "AndroidScreenOn");
+        // Plus 层：把导出/朗读交给系统能力，浏览器与 PWA 无此对象，JS 侧自动降级
+        wv.addJavascriptInterface(new InkToolsBridge(this), "InkTools");
+    }
+
+    // 注：BridgeActivity 的 onDestroy() 不可覆盖。TTS 用 applicationContext 持有，
+    // 随进程生命周期释放，不会因 Activity 重建而泄漏；每次停止只做 tts.stop()。
+
+    // ---------- Plus：本机朗读 ----------
+    void speakOut(String text, float rate) {
+        if (text == null || text.isEmpty()) return;
+        if (tts == null) {
+            pendingSpeak = text;
+            pendingRate = rate;
+            try {
+                tts = new TextToSpeech(getApplicationContext(), status -> {
+                    if (status != TextToSpeech.SUCCESS) {
+                        runOnUiThread(() -> Toast.makeText(this, "本机语音引擎不可用", Toast.LENGTH_LONG).show());
+                        return;
+                    }
+                    try {
+                        tts.setLanguage(Locale.CHINESE);
+                        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                            @Override public void onStart(String id) {}
+                            @Override public void onDone(String id) { notifyTtsEnd(); }
+                            @Override public void onError(String id) { notifyTtsEnd(); }
+                        });
+                        ttsReady = true;
+                        if (pendingSpeak != null) {
+                            doSpeak(pendingSpeak, pendingRate);
+                            pendingSpeak = null;
+                        }
+                    } catch (Throwable ignore) {}
+                });
+            } catch (Throwable t) {
+                runOnUiThread(() -> Toast.makeText(this, "无法初始化语音引擎", Toast.LENGTH_LONG).show());
+            }
+        } else if (ttsReady) {
+            doSpeak(text, rate);
+        } else {
+            pendingSpeak = text;
+            pendingRate = rate;
+        }
+    }
+
+    private void doSpeak(String text, float rate) {
+        try {
+            tts.setSpeechRate(Math.max(0.5f, Math.min(2f, rate)));
+            Bundle params = new Bundle();
+            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "inktts");
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "inktts");
+        } catch (Throwable ignore) {}
+    }
+
+    private void notifyTtsEnd() {
+        runOnUiThread(() -> {
+            Bridge b = getBridge();
+            WebView wv = b == null ? null : b.getWebView();
+            if (wv != null) wv.evaluateJavascript("window.__inkTtsOnEnd && window.__inkTtsOnEnd()", null);
+        });
+    }
+
+    void stopSpeak() {
+        try { if (tts != null) tts.stop(); } catch (Throwable ignore) {}
+        pendingSpeak = null;
+    }
+
+    // ---------- Plus：把导出文件写入系统「下载」目录（无需存储权限） ----------
+    void saveToDownloads(String name, String base64) {
+        runOnUiThread(() -> {
+            String safe = (name == null ? "export.txt" : name).replaceAll("[\\\\/:*?\"<>|]", "_");
+            try {
+                byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues cv = new ContentValues();
+                    cv.put(MediaStore.Downloads.DISPLAY_NAME, safe);
+                    cv.put(MediaStore.Downloads.MIME_TYPE, mimeOf(safe));
+                    cv.put(MediaStore.Downloads.IS_PENDING, 1);
+                    Uri target = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                    if (target == null) throw new IllegalStateException("MediaStore 不可用");
+                    OutputStream os = getContentResolver().openOutputStream(target);
+                    if (os == null) throw new IllegalStateException("无法打开输出流");
+                    os.write(bytes);
+                    os.close();
+                    cv.clear();
+                    cv.put(MediaStore.Downloads.IS_PENDING, 0);
+                    getContentResolver().update(target, cv, null, null);
+                } else {
+                    File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    if (dir != null && !dir.exists()) dir.mkdirs();
+                    File f = new File(dir, safe);
+                    FileOutputStream fos = new FileOutputStream(f);
+                    fos.write(bytes);
+                    fos.close();
+                }
+                Toast.makeText(this, "已保存到下载目录：" + safe, Toast.LENGTH_LONG).show();
+            } catch (Throwable t) {
+                Toast.makeText(this, "保存失败：" + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private static String mimeOf(String name) {
+        String n = name.toLowerCase(Locale.ROOT);
+        if (n.endsWith(".md")) return "text/markdown";
+        if (n.endsWith(".json")) return "application/json";
+        return "text/plain";
+    }
+
+    // JS 可调用的原生桥。Web / PWA 环境不存在该对象，plus.js 一律做特性检测后降级。
+    private static class InkToolsBridge {
+        private final MainActivity host;
+        InkToolsBridge(MainActivity h) { host = h; }
+
+        @JavascriptInterface
+        public void save(String name, String base64) { host.saveToDownloads(name, base64); }
+
+        @JavascriptInterface
+        public void speak(String text, float rate) { host.runOnUiThread(() -> host.speakOut(text, rate)); }
+
+        @JavascriptInterface
+        public void stopSpeak() { host.runOnUiThread(() -> host.stopSpeak()); }
     }
 
     private boolean hasCameraPermission() {

@@ -65,12 +65,32 @@ function download(name, text, mime) {
     return true;
   } catch (e) { return false; }
 }
+// Android WebView 默认不处理 blob: 下载，<a download> 点了不会抛错但也没文件。
+// 有原生桥时把 UTF-8 文本转 base64 交给系统「下载」目录，浏览器 / PWA 仍走 Blob。
+function nativeSave(name, text) {
+  let bridge = null;
+  try { bridge = window.InkTools; } catch (e) { return null; }
+  if (!bridge || typeof bridge.save !== 'function') return null;
+  try {
+    const bytes = new TextEncoder().encode(text);
+    let bin = '';
+    const CH = 0x8000;
+    for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    bridge.save(name, btoa(bin));
+    return 'native';
+  } catch (e) { return null; }
+}
 async function shareOrDownload(name, text, mime) {
   const cap = (() => { try { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share; } catch (e) { return null; } })();
   if (cap && typeof cap.share === 'function') {
     try { await cap.share({ title: name, text, dialogTitle: '导出' }); return 'share'; } catch (e) {}
   }
-  return download(name, text, mime) ? 'download' : 'failed';
+  return nativeSave(name, text) || (download(name, text, mime) ? 'download' : 'failed');
+}
+function saveResultToast(r, fallback) {
+  if (r === 'failed') return '导出失败，请检查本机存储';
+  if (r === 'native') return '已保存到系统「下载」目录';
+  return fallback;
 }
 function pickFile(accept, onText, onDataUrl) {
   const inp = document.createElement('input');
@@ -545,40 +565,61 @@ export function mountReaderPlus(ctx) {
   }
 
   // ---------------- 新功能 2：TTS 朗读 ----------------
-  function ttsSupported() { return typeof window !== 'undefined' && !!window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined'; }
+  // Android WebView 经常没有 Web Speech API：优先用原生 TextToSpeech 桥，浏览器 / PWA 用 speechSynthesis。
+  function nativeTts() {
+    try { const b = window.InkTools; return b && typeof b.speak === 'function' ? b : null; } catch (e) { return null; }
+  }
+  function webTts() { return !!(window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined'); }
+  function ttsSupported() { return !!nativeTts() || webTts(); }
   function pageText() {
     const p = $('page');
     return p ? String(p.innerText || p.textContent || '').replace(/\s+/g, ' ').trim() : '';
   }
+  // 原生桥读完一页后回调；Web Speech 也复用同一段「自动翻下一页」逻辑
+  window.__inkTtsOnEnd = () => {
+    if (!ttsOn) return;
+    if (config.ttsAutoNext && ctx.requestTurn) {
+      ctx.requestTurn('next', 'tts');
+      setTimeout(() => { if (ttsOn) speakCurrent(); }, 700);
+    } else stopTTS();
+  };
   function speakCurrent() {
     if (!ttsSupported()) { ctx.showToast && ctx.showToast('本机不支持语音朗读'); return; }
     stopTTS();
-    const text = pageText();
+    const text = pageText().slice(0, 6000);
     if (!text) return;
-    const u = new SpeechSynthesisUtterance(text.slice(0, 6000));
-    u.lang = 'zh-CN'; u.rate = clamp(Number(config.ttsRate) || 1, 0.6, 1.8);
-    u.onend = () => {
-      if (!ttsOn) return;
-      if (config.ttsAutoNext && ctx.requestTurn) {
-        ctx.requestTurn('next', 'tts');
-        setTimeout(() => { if (ttsOn) speakCurrent(); }, 700);
-      } else stopTTS();
-    };
-    u.onerror = () => stopTTS();
-    try { window.speechSynthesis.speak(u); } catch (e) { stopTTS(); return; }
+    const rate = clamp(Number(config.ttsRate) || 1, 0.6, 1.8);
+    const nt = nativeTts();
+    if (nt) {
+      try { nt.speak(text, rate); } catch (e) { ctx.showToast && ctx.showToast('朗读启动失败'); return; }
+    } else {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN'; u.rate = rate;
+      u.onend = () => window.__inkTtsOnEnd();
+      u.onerror = () => stopTTS();
+      try { window.speechSynthesis.speak(u); } catch (e) { stopTTS(); return; }
+    }
     ttsOn = true;
     $('plus-ttsbar').classList.remove('hidden');
     $('plus-tts-state').textContent = '朗读中';
-    $('plus-tts-toggle').textContent = '暂停';
+    $('plus-tts-toggle').textContent = nt ? '停止' : '暂停';
   }
   function stopTTS() {
     ttsOn = false;
-    try { if (ttsSupported()) window.speechSynthesis.cancel(); } catch (e) {}
+    const nt = nativeTts();
+    if (nt) { try { nt.stopSpeak(); } catch (e) {} }
+    else { try { if (webTts()) window.speechSynthesis.cancel(); } catch (e) {} }
     const bar = $('plus-ttsbar'); if (bar) bar.classList.add('hidden');
   }
   function toggleTTS() {
     if (!ttsSupported()) return;
     if (!ttsOn) { speakCurrent(); return; }
+    if (nativeTts()) {
+      // TextToSpeech 没有 pause/resume：明确停止并说明「继续 = 重读本页」，不做假暂停
+      stopTTS();
+      ctx.showToast && ctx.showToast('已停止朗读，点「播放本页」可重新朗读');
+      return;
+    }
     const syn = window.speechSynthesis;
     if (syn.paused) { syn.resume(); $('plus-tts-toggle').textContent = '暂停'; }
     else { syn.pause(); $('plus-tts-toggle').textContent = '继续'; }
@@ -602,7 +643,8 @@ export function mountReaderPlus(ctx) {
       .replace(/^#+\s*/gm, '').replace(/[*_`>]/g, '').replace(/^\s*-\s*/gm, '  ');
     const name = `水杉摘录-${String(b.title || 'book').replace(/[\\/:*?"<>|]/g, '_').slice(0, 24)}.${asMd ? 'md' : 'txt'}`;
     shareOrDownload(name, text, asMd ? 'text/markdown' : 'text/plain').then((r) => {
-      ctx.showToast && ctx.showToast(r === 'failed' ? '导出失败，请检查存储权限' : `已导出 ${m.highlights.length + m.favorites.length + m.bookmarks.length} 条摘录`);
+      ctx.showToast && ctx.showToast(saveResultToast(r,
+        `已导出 ${m.highlights.length + m.favorites.length + m.bookmarks.length} 条摘录`));
     });
   }
 
@@ -622,7 +664,7 @@ export function mountReaderPlus(ctx) {
     const text = core.serializeBackup(payload);
     const name = `水杉备份-${new Date().toISOString().slice(0, 10)}.json`;
     const r = await shareOrDownload(name, text, 'application/json');
-    ctx.showToast && ctx.showToast(r === 'failed' ? '备份导出失败' : `已备份 ${books.length} 本书与本机设置`);
+    ctx.showToast && ctx.showToast(saveResultToast(r, `已备份 ${books.length} 本书与本机设置`));
   }
   function importBackup() {
     pickFile('application/json,.json', (text) => {

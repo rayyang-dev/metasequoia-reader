@@ -35,6 +35,8 @@ const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
 const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
 const importers = fs.readFileSync(path.join(ROOT, 'js/importers.js'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const main = fs.readFileSync(path.resolve('android/app/src/main/java/com/rayyang/metasequoia/MainActivity.java'), 'utf8');
+const plusSrc = fs.readFileSync(path.join(ROOT, 'js/plus.js'), 'utf8');
 check('SW 缓存已升版到 inkreader-v11', /const CACHE = 'inkreader-v11'/.test(sw));
 check('SW ASSETS 补齐 plus.css / plus.js / plus-core.js',
   /css\/plus\.css/.test(sw) && /js\/plus\.js/.test(sw) && /js\/plus-core\.js/.test(sw));
@@ -50,6 +52,17 @@ check('app.js 挂载 Plus 层且保留 Pro 预告组合',
 check('app.js 有效阅读 / 锚点 / 双页 / Regal 钩子就位',
   /plus\.countThisTick/.test(app) && /plus\.anchorPi/.test(app) &&
   /plus\.pageStep/.test(app) && /plus\.shouldRegal/.test(app) && /plus\.onPageRendered/.test(app));
+check('Android 原生桥：InkTools 提供 save / speak / stopSpeak',
+  /addJavascriptInterface\(new InkToolsBridge/.test(main) &&
+  /public void save\(String name, String base64\)/.test(main) &&
+  /public void speak\(String text, float rate\)/.test(main) &&
+  /public void stopSpeak\(\)/.test(main));
+check('Android 原生桥：导出走 MediaStore 下载目录且无需存储权限',
+  /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/.test(main) && /Base64\.decode/.test(main));
+check('Android 原生桥：TTS 结束回调驱动自动翻页',
+  /__inkTtsOnEnd/.test(main) && /__inkTtsOnEnd/.test(plusSrc));
+check('plus.js：无原生桥时安全降级到 Blob / Web Speech',
+  /nativeSave\(name, text\) \|\| \(download/.test(plusSrc) && /!!nativeTts\(\) \|\| webTts\(\)/.test(plusSrc));
 
 const browser = await puppeteer.launch({
   executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',

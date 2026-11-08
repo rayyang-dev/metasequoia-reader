@@ -138,6 +138,8 @@ v1.1.18 把产品路线图整批落地。所有能力收敛到独立的 `js/plus
 
 入口在阅读器底部 `✦`（复用 Pro 的 `#pro-chip` 避让逻辑，不新增遮挡控制条的浮层）。工具箱含 **搜索 / 章节 / 工具 / 统计 / 设置** 五个页签；打开面板会自动暂停自动翻页。所有数据仅存本机，不新增任何权限与联网请求。
 
+> 真机适配：Android WebView 默认不处理 `blob:` 下载、也常缺 Web Speech API。`MainActivity` 里的 `InkTools` 原生桥把导出文件写入系统「下载」目录（MediaStore，无需存储权限），并用系统 `TextToSpeech` 朗读；浏览器 / PWA 检测不到该对象时自动回落到 Blob 下载与 `speechSynthesis`。原生 TTS 没有 pause/resume，因此按钮明确标为「停止」，继续即重读本页。
+
 ---
 
 ## 📊 阅读统计 · 打卡 · 自动整理书架
