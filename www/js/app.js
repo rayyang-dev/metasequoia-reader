@@ -21,6 +21,7 @@ import { mountReaderPro } from './pro.js';
 import { mountReaderPlus } from './plus.js';
 import { mountStatsDashboard } from './stats.js';
 import { mountReaderNexus } from './nexus.js';
+import { mountAurora, toggleAurora } from './aurora.js';
 import { playInkFlip } from './inkflip.js';
 
 // Capacitor 仅存在于原生外壳（Android WebView），由桥接层把插件挂在全局 window.Capacitor.Plugins 上。
@@ -2521,6 +2522,13 @@ function createNexusLayer() {
   window.__INK_NEXUS = nexus; // 只读诊断 / 自动化回归入口
 }
 
+// ---------- 红杉能力中心（Aurora，v1.4.0，独立层） ----------
+// 与 Nexus 同构：只读/自治，新增能力挂载于此，删除本函数 + import + index.html 的 css/aurora.css 即可整体回退。
+function createAuroraLayer() {
+  mountAurora({ showToast: (m) => showToast(m) });
+  window.__INK_AURORA = toggleAurora; // 只读诊断 / 自动化回归入口
+}
+
 // ---------- 启动 ----------
 function init() {
   applySettings();
@@ -2528,6 +2536,7 @@ function init() {
   createPlusLayer();
   createStatsLayer();
   createNexusLayer();
+  createAuroraLayer();
   bindEvents();
   renderShelf();
   ensureBookMeta();

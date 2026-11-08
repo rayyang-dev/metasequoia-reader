@@ -278,10 +278,10 @@ check('删书文案不再宣称「不可恢复」', /30 天内可在/.test(app))
 check('CSS 零动画（墨水屏原则）', !/animation\s*:|transition\s*:/.test(nxCss));
 check('package.json 纳入 test:nexus 且 npm test 含第八套',
   !!pkg.scripts['test:nexus'] && /test\/nexus\.mjs/.test(pkg.scripts.test));
-check('版本升到 versionCode 23 / 1.3.0', /versionCode 23/.test(gradle) && /versionName "1\.3\.0"/.test(gradle));
-const roadRows = roadmap.match(/^\| (\d{1,3}) \|/gm) || [];
-check('路线图文件含 100 个编号项与落地矩阵',
-  roadRows.length === 100 && /落地矩阵/.test(roadmap));
+check('版本升到 versionCode 25 / 1.4.0', /versionCode 25/.test(gradle) && /versionName "1\.4\.0"/.test(gradle));
+const roadIds = (roadmap.match(/R-[0-9]{3}/g) || []).filter((v, i, a) => a.indexOf(v) === i);
+check('路线图文件含 200 个编号项与总览',
+  roadIds.length === 200 && /合计 200/.test(roadmap));
 
 /* ============ ③ 真实 App 集成 ============ */
 const browser = await puppeteer.launch({
