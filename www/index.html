@@ -32,26 +32,31 @@
         </div>
       </header>
       <div class="shelf-actions">
-        <span class="section-label">导入书籍</span>
-        <div class="import-grid">
-          <button id="import-epub" class="btn">＋ EPUB</button>
-          <button id="import-txt" class="btn">＋ TXT</button>
-          <button id="import-pdf" class="btn">＋ PDF</button>
-          <button id="import-mobi" class="btn">＋ MOBI</button>
+        <div class="shelf-actions-head" id="import-head" role="button" tabindex="0" aria-label="折叠或展开导入区">
+          <span class="section-label">导入书籍</span>
+          <span class="collapse-chevron" id="import-chevron" aria-hidden="true">▾</span>
         </div>
-        <button id="import-more" class="btn btn-more" type="button">更多类型 ▾</button>
-        <div id="import-extra" class="import-grid hidden">
-          <button id="import-fb2" class="btn">＋ FB2</button>
-          <button id="import-html" class="btn">＋ HTML</button>
-          <button id="import-docx" class="btn">＋ DOCX</button>
+        <div class="import-body" id="import-body">
+          <div class="import-grid">
+            <button id="import-epub" class="btn">＋ EPUB</button>
+            <button id="import-txt" class="btn">＋ TXT</button>
+            <button id="import-pdf" class="btn">＋ PDF</button>
+            <button id="import-mobi" class="btn">＋ MOBI</button>
+          </div>
+          <button id="import-more" class="link-toggle" type="button">更多格式 ▾</button>
+          <div id="import-extra" class="import-grid import-extra hidden">
+            <button id="import-fb2" class="btn">＋ FB2</button>
+            <button id="import-html" class="btn">＋ HTML</button>
+            <button id="import-docx" class="btn">＋ DOCX</button>
+          </div>
+          <input type="file" id="file-txt" accept=".txt,text/plain" hidden />
+          <input type="file" id="file-epub" accept=".epub,application/epub+zip" hidden />
+          <input type="file" id="file-pdf" accept=".pdf,application/pdf" hidden />
+          <input type="file" id="file-mobi" accept=".mobi,.azw,application/x-mobipocket-ebook" hidden />
+          <input type="file" id="file-fb2" accept=".fb2" hidden />
+          <input type="file" id="file-html" accept=".html,.htm,text/html" hidden />
+          <input type="file" id="file-docx" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
         </div>
-        <input type="file" id="file-txt" accept=".txt,text/plain" hidden />
-        <input type="file" id="file-epub" accept=".epub,application/epub+zip" hidden />
-        <input type="file" id="file-pdf" accept=".pdf,application/pdf" hidden />
-        <input type="file" id="file-mobi" accept=".mobi,.azw,application/x-mobipocket-ebook" hidden />
-        <input type="file" id="file-fb2" accept=".fb2" hidden />
-        <input type="file" id="file-html" accept=".html,.htm,text/html" hidden />
-        <input type="file" id="file-docx" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
       </div>
       <div id="tag-filter" class="tag-filter hidden"></div>
       <div id="book-list" class="book-list"></div>

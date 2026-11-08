@@ -63,6 +63,8 @@ public class MainActivity extends BridgeActivity {
         wv.addJavascriptInterface(new ScreenOnBridge(this), "AndroidScreenOn");
         // Plus 层：把导出/朗读交给系统能力，浏览器与 PWA 无此对象，JS 侧自动降级
         wv.addJavascriptInterface(new InkToolsBridge(this), "InkTools");
+        // 视线翻页：原生摄像头权限预申请桥（见 GazeBridge）
+        wv.addJavascriptInterface(new GazeBridge(this), "AndroidGazeBridge");
     }
 
     // 注：BridgeActivity 的 onDestroy() 不可覆盖。TTS 用 applicationContext 持有，
@@ -184,6 +186,28 @@ public class MainActivity extends BridgeActivity {
         public void stopSpeak() { host.runOnUiThread(() -> host.stopSpeak()); }
     }
 
+    // 视线翻页：原生预申请摄像头权限。在部分鸿蒙兼容容器里，WebView 内部 onPermissionRequest
+    // 不会弹出系统授权框，但 Android 的 requestPermissions 对话框（会被容器翻译为鸿蒙弹窗）
+    // 出现得更可靠。先走完系统授权，再发起 getUserMedia，可显著提升「视线翻页」在这些设备上的可用性。
+    // Web / PWA 环境无此对象，gaze.js 自动走原路径。
+    private static class GazeBridge {
+        private final MainActivity host;
+        GazeBridge(MainActivity h) { host = h; }
+
+        @JavascriptInterface
+        public void requestCamera() {
+            host.runOnUiThread(() -> {
+                if (host.hasCameraPermission()) {
+                    Bridge b = host.getBridge();
+                    WebView wv = (b == null) ? null : b.getWebView();
+                    if (wv != null) wv.evaluateJavascript("window.__onGazeCameraResult && window.__onGazeCameraResult(true)", null);
+                    return;
+                }
+                host.requestPermissions(new String[]{ Manifest.permission.CAMERA }, CAMERA_PERMISSION_REQ);
+            });
+        }
+    }
+
     private boolean hasCameraPermission() {
         return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
@@ -219,12 +243,22 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode != CAMERA_PERMISSION_REQ || pendingCameraRequest == null) return;
-        PermissionRequest req = pendingCameraRequest;
-        pendingCameraRequest = null;
+        if (requestCode != CAMERA_PERMISSION_REQ) return;
         boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
-        if (granted) req.grant(new String[]{ PermissionRequest.RESOURCE_VIDEO_CAPTURE });
-        else req.deny(); // 拒绝授权时 JS 侧会收到错误并自动降级为定时自动翻页
+        // 1) WebView 内部 getUserMedia 的权限请求：直接 grant/deny 给 WebView
+        if (pendingCameraRequest != null) {
+            PermissionRequest req = pendingCameraRequest;
+            pendingCameraRequest = null;
+            if (granted) req.grant(new String[]{ PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+            else req.deny(); // 拒绝授权时 JS 侧会收到错误并自动降级为定时自动翻页
+        }
+        // 2) 通知 web 层的原生预授权结果（视线翻页用）；无监听则无害
+        final boolean g = granted;
+        Bridge b = getBridge();
+        WebView wv = (b == null) ? null : b.getWebView();
+        if (wv != null) {
+            wv.evaluateJavascript("window.__onGazeCameraResult && window.__onGazeCameraResult(" + g + ")", null);
+        }
     }
 
     // 音量键翻页：墨水屏设备 / 单手握持的常见需求。仅在阅读器内消费，

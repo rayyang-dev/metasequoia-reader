@@ -10,7 +10,7 @@
 //   4) 回扫判定：冷却期内不会重复触发（防连翻）
 //   3/4 用纯函数测试，不依赖计时器/帧率，稳定无抖动。
 
-import { createGazeEngine, gazeSweepDecision } from '../www/js/gaze.js';
+import { createGazeEngine, gazeSweepDecision, classifyCameraError, requestNativeCameraPermission } from '../www/js/gaze.js';
 
 if (typeof globalThis.requestAnimationFrame !== 'function') {
   globalThis.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 16);
@@ -69,6 +69,41 @@ async function main() {
       0.14, CFG, RANGE, 700
     );
     check('冷却期内不重复触发（防连翻）', again.fire === false);
+  }
+
+  // 5. 摄像头错误分类（纯函数，覆盖权限/无设备/被占用/超时/WebView不支持/其他）
+  {
+    const perm = classifyCameraError({ name: 'NotAllowedError' });
+    check('权限被拒 -> PERMISSION_DENIED', perm.code === 'PERMISSION_DENIED');
+    const perm2 = classifyCameraError({ name: 'SecurityError' });
+    check('SecurityError -> PERMISSION_DENIED', perm2.code === 'PERMISSION_DENIED');
+    const nocam = classifyCameraError({ name: 'NotFoundError' });
+    check('无摄像头 -> NO_CAMERA', nocam.code === 'NO_CAMERA');
+    const busy = classifyCameraError({ name: 'NotReadableError' });
+    check('被占用 -> CAMERA_BUSY', busy.code === 'CAMERA_BUSY');
+    const to = classifyCameraError({ message: 'CAMERA_TIMEOUT' });
+    check('超时 -> CAMERA_TIMEOUT', to.code === 'CAMERA_TIMEOUT');
+    const noapi = classifyCameraError({ message: 'getUserMedia 不可用' });
+    check('WebView不支持 -> WEBVIEW_NO_API', noapi.code === 'WEBVIEW_NO_API');
+    const other = classifyCameraError({ name: 'UnknownError', message: 'boom' });
+    check('其他 -> CAMERA_ERR 且含原文', other.code === 'CAMERA_ERR' && /boom/.test(other.message));
+  }
+
+  // 6. 原生摄像头权限预申请桥（requestNativeCameraPermission）：无桥 / 授权 / 超时 / 抛错
+  {
+    check('无桥时返回 null', (await requestNativeCameraPermission()) === null);
+    globalThis.window = {
+      AndroidGazeBridge: { requestCamera() { setTimeout(() => { if (window.__onGazeCameraResult) window.__onGazeCameraResult(true); }, 10); } },
+    };
+    const r1 = await requestNativeCameraPermission({ timeoutMs: 300 });
+    check('桥存在且授权回调 -> true', r1 === true);
+    globalThis.window = { AndroidGazeBridge: { requestCamera() { /* 不回调，应超时 */ } } };
+    const r2 = await requestNativeCameraPermission({ timeoutMs: 120 });
+    check('桥存在但超时未回调 -> false', r2 === false);
+    globalThis.window = { AndroidGazeBridge: { requestCamera() { throw new Error('x'); } } };
+    const r3 = await requestNativeCameraPermission({ timeoutMs: 120 });
+    check('桥 requestCamera 抛错 -> false', r3 === false);
+    delete globalThis.window;
   }
 
   console.log(`\ngaze: ${pass} passed, ${fail} failed` + (fail ? `  [${fails.join('; ')}]` : ''));

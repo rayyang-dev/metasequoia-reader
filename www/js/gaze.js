@@ -171,6 +171,77 @@ export function gazeSweepDecision(s, y, cfg, rangeObj, t) {
   return { phase, bottomSince, bottomY, lastFireAt, fire: false, detail };
 }
 
+// ---------- 摄像头错误分类（纯函数，便于确定性回归） ----------
+// 把 getUserMedia 的原生错误名映射成可执行的排查指引，避免一句误导的「设备不支持」。
+export function classifyCameraError(err) {
+  const name = (err && err.name) || '';
+  const message = (err && err.message) || '';
+  if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+    return { code: 'PERMISSION_DENIED', message: '摄像头权限被拒绝。请在系统设置中授予本应用（或卓易通）摄像头权限后，重新开启「视线」' };
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+    return { code: 'NO_CAMERA', message: '未检测到可用的前置摄像头' };
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return { code: 'CAMERA_BUSY', message: '摄像头被其他应用占用，请关闭相机类应用后重试' };
+  }
+  if (message === 'CAMERA_TIMEOUT') {
+    return { code: 'CAMERA_TIMEOUT', message: '摄像头初始化超时（可能未被授权或设备未响应），请检查权限后重试' };
+  }
+  if (message === 'getUserMedia 不可用') {
+    return { code: 'WEBVIEW_NO_API', message: '当前 WebView 不支持摄像头接口（常见于部分鸿蒙兼容容器），可在「视线引擎」选「演示（模拟视线）」查看效果' };
+  }
+  return { code: 'CAMERA_ERR', message: '摄像头初始化失败：' + (message || name || '未知错误') };
+}
+
+// 带超时的 getUserMedia：部分环境（如鸿蒙兼容容器）在权限弹窗缺失时会永久挂起，
+// 用超时兜底，保证视线翻页失败也能明确报错而不是卡死。
+function getUserMediaTimed(constraints, ms) {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      reject(new Error('getUserMedia 不可用')); return;
+    }
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; reject(new Error('CAMERA_TIMEOUT')); }
+    }, ms);
+    navigator.mediaDevices.getUserMedia(constraints).then((s) => {
+      if (settled) { try { s.getTracks().forEach((t) => t.stop()); } catch (e) {} return; }
+      settled = true; clearTimeout(timer); resolve(s);
+    }).catch((err) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer); reject(err);
+    });
+  });
+}
+
+// 无可用检测器时的准确提示（不谎称「设备不支持摄像头」，并指引演示模式）。
+function noDetectorMsg() {
+  return '本设备暂无可用视线检测引擎（未内置端侧模型且系统不支持人脸检测）。可在「视线引擎」选「演示（模拟视线）」查看 视线→翻页 效果（明确标注为模拟，非真实检测）';
+}
+
+// 通过原生桥预申请摄像头权限（仅 Android/Capacitor 包内有 window.AndroidGazeBridge）。
+// 在某些鸿蒙兼容容器里，系统级 requestPermissions 弹窗比 WebView 内部的 onPermissionRequest
+// 更可靠地出现；先走完系统授权，再发起 getUserMedia，可提升「视线翻页」在这些设备上的可用性。
+// 返回 Promise<boolean|null>：true=已授权；false=被拒；null=无桥（调用方走原 getUserMedia 路径）。
+export function requestNativeCameraPermission(opts) {
+  const bridge = (typeof window !== 'undefined') && window.AndroidGazeBridge;
+  const timeoutMs = (opts && opts.timeoutMs) || 10000;
+  if (!bridge || typeof bridge.requestCamera !== 'function') {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (granted) => { if (!settled) { settled = true; resolve(granted); } };
+    const timer = setTimeout(() => done(false), timeoutMs);
+    if (typeof window !== 'undefined') {
+      // 原生 onRequestPermissionsResult 会通过此回调把结果送回 web 层
+      window.__onGazeCameraResult = (g) => { clearTimeout(timer); done(!!g); };
+    }
+    try { bridge.requestCamera(); } catch (e) { clearTimeout(timer); done(false); }
+  });
+}
+
 // ---------- 视线引擎 ----------
 
 export function createGazeEngine(opts) {
@@ -255,47 +326,69 @@ export function createGazeEngine(opts) {
     emit('正在初始化端侧视线检测');
     const cfg = config();
     try {
-    detector = await pickDetector(cfg.prefer);
-    if (!detector) {
-      // 诚实降级：无端侧模型且无系统人脸检测时，明确上报不可用，
-      // 由上层（pro.setMode）降级为「定时自动翻页」并弹出说明，绝不留下死开关。
-      throw new Error('本设备暂无可用视线检测引擎（未内置端侧模型且系统不支持人脸检测），已降级');
-    }
-    engineName = detector.name;
-    simInjected = !!detector.simulate;
-    cal = cfg.calibration || null;
-
-    if (!simInjected) {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('当前环境不支持摄像头');
+      detector = await pickDetector(cfg.prefer);
+      if (!detector) {
+        // 没有可用检测器（未内置端侧模型且无系统人脸检测）：
+        // 关键修正——绝不说谎「设备不支持摄像头」，而是明确「无检测引擎」，
+        // 并指引用户用「演示（模拟视线）」预览 视线→翻页 链路（无需摄像头）。
+        throw new Error('NO_DETECTOR::' + noDetectorMsg());
       }
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } },
-        audio: false,
-      });
-      video = makeVideo();
-      video.srcObject = stream;
-      await video.play();
-      canvas = document.createElement('canvas');
-      canvas.width = 160; canvas.height = 120;
-      ctx = canvas.getContext('2d', { willReadFrequently: false });
-    } else {
-      // 显式 sim（演示）模式：自驱动注入「页底驻留 -> 回看页首」的合成回扫，
-      // 让用户在任何无摄像头环境也能端到端看到 视线 -> 翻页 链路真实生效。
-      startDemo();
-    }
-    running = true;
-    paused = false;
-    phase = 'tracking';
-    emit(simInjected ? '演示模式 · 模拟视线（非真实检测）' : '视线追踪中 · 视频帧仅在本机内存处理');
-    loop();
-    return { ok: true, engine: engineName };
+      engineName = detector.name;
+      simInjected = !!detector.simulate;
+      cal = cfg.calibration || null;
+
+      if (!simInjected) {
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          // 当前 WebView 不提供摄像头接口（部分鸿蒙兼容容器 / 旧 WebView），
+          // 真实视线检测无法进行；诚实告知，并指引演示模式。
+          throw new Error('WEBVIEW_NO_API::当前 WebView 不支持摄像头接口（常见于部分鸿蒙兼容容器）。视线翻页依赖前置摄像头，可在「视线引擎」选「演示（模拟视线）」查看 视线→翻页 效果（非真实检测）');
+        }
+        // 原生预授权（仅 Android 包）：让系统权限弹窗优先出现，再 getUserMedia。
+        // 返回 null 表示无桥（Web/PWA/旧包），走原路径；false 表示被拒。
+        const nativeGranted = await requestNativeCameraPermission({ timeoutMs: 10000 });
+        if (nativeGranted === false) {
+          throw new Error('PERMISSION_DENIED::摄像头权限被拒绝。请在系统设置中授予本应用（或卓易通）摄像头权限后，重新开启「视线」');
+        }
+        // 真实检测：带超时地申请摄像头，避免部分环境下权限弹窗缺失导致永久挂起；
+        // 失败按错误类型精确分类，给出可执行的排查指引，而不是一句误导的「设备不支持」。
+        stream = await getUserMediaTimed({
+          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } },
+          audio: false,
+        }, 8000);
+        video = makeVideo();
+        video.srcObject = stream;
+        await video.play();
+        canvas = document.createElement('canvas');
+        canvas.width = 160; canvas.height = 120;
+        ctx = canvas.getContext('2d', { willReadFrequently: false });
+      } else {
+        // 显式 sim（演示）模式：自驱动注入「页底驻留 -> 回看页首」的合成回扫，
+        // 让用户在任何无摄像头环境也能端到端看到 视线 -> 翻页 链路真实生效。
+        startDemo();
+      }
+      running = true;
+      paused = false;
+      phase = 'tracking';
+      emit(simInjected ? '演示模式 · 模拟视线（非真实检测）' : '视线追踪中 · 视频帧仅在本机内存处理');
+      loop();
+      return { ok: true, engine: engineName };
     } catch (e) {
       phase = 'unavailable';
       engineName = engineName || '不可用';
       cleanup();
-      emit((e && e.message) || '摄像头不可用，已自动降级');
-      return { ok: false, engine: engineName, reason: (e && e.message) || 'unavailable' };
+      const raw = (e && e.message) || '';
+      const idx = raw.indexOf('::');
+      let code, message;
+      if (idx > 0) {
+        code = raw.slice(0, idx);
+        message = raw.slice(idx + 2);
+      } else {
+        // 来自 getUserMedia 的原生错误（被 getUserMediaTimed 透传）
+        const c = classifyCameraError(e);
+        code = c.code; message = c.message;
+      }
+      emit(message);
+      return { ok: false, engine: engineName, reason: code, message };
     }
   }
 

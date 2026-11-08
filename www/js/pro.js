@@ -319,13 +319,19 @@ export function mountReaderPro(ctx) {
     if (mode === 'gaze') {
       const res = await gaze.start();
       if (!res.ok) {
-        // 明确的降级路径：绝不留下一个「开了却没反应」的开关
+        // 明确的降级路径：绝不留下一个「开了却没反应」的开关。
+        // 关键修正：用 gaze 返回的精确 reason / message，不再一句误导的「设备不支持」。
         runtimeMode = 'timed';
         setSetting('autoMode', 'timed');
         gaze.stop();
         turn.startAuto('timed', num(s().autoIntervalMs, 12000), num(s().autoConfirmMs, 700));
-        setStatus('unavailable', '视线不可用 · 已降级为定时翻页');
-        if (showToast) showToast('当前设备不支持端侧视线检测，已切换为「定时自动翻页」');
+        setStatus('unavailable', '视线不可用 · ' + (res.message || '已降级为定时翻页'));
+        if (showToast) {
+          const tip = (res.reason === 'NO_DETECTOR' || res.reason === 'WEBVIEW_NO_API')
+            ? '视线翻页暂不可用：' + (res.message || '') + '（可在「视线引擎」选「演示」预览）'
+            : (res.message || '当前设备不支持端侧视线检测，已切换为「定时自动翻页」');
+          showToast(tip);
+        }
         renderAuto();
         syncPause();
         return;

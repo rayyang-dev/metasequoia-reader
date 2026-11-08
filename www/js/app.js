@@ -2030,12 +2030,26 @@ function bindEvents() {
   $('import-txt').addEventListener('click', () => $('file-txt').click());
   $('import-epub').addEventListener('click', () => $('file-epub').click());
   $('import-pdf').addEventListener('click', () => $('file-pdf').click());
-  // 导入区“更多类型”折叠：默认只展示常见格式，点开才显示 FB2/HTML/DOCX
+  // 导入区“更多格式”折叠：默认只展示常见格式，点开才显示 FB2/HTML/DOCX
   $('import-more').addEventListener('click', () => {
     const extra = $('import-extra');
     const hidden = extra.classList.toggle('hidden');
-    $('import-more').textContent = hidden ? '更多类型 ▾' : '收起 ▴';
+    $('import-more').textContent = hidden ? '更多格式 ▾' : '收起 ▴';
   });
+  // 导入区整体折叠（点标题栏收起/展开，真正的“收起”语义）
+  const importHead = $('import-head');
+  if (importHead) {
+    const toggleImport = () => {
+      const sa = $('shelf-actions');
+      const collapsed = sa.classList.toggle('collapsed');
+      const chevron = $('import-chevron');
+      if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
+    };
+    importHead.addEventListener('click', toggleImport);
+    importHead.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleImport(); }
+    });
+  }
   $('file-txt').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
