@@ -1,6 +1,6 @@
 {
   "appId": "com.rayyang.metasequoia",
-  "appName": "水杉阅读",
+  "appName": "红杉阅读",
   "webDir": "www",
   "harmony": {
     "nodeDir": false

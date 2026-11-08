@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     namespace = "com.rayyang.metasequoia"
-    archivesBaseName = "Metasequoia"
+    archivesBaseName = "Sequoia"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.rayyang.metasequoia"

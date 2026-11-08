@@ -1,7 +1,7 @@
-# 水杉 · Metasequoia
+# 红杉 · Sequoia
 
 <p align="center">
-  <img src="docs/mockup.svg" width="280" alt="水杉 Metasequoia 手机界面示意"/>
+  <img src="docs/mockup.svg" width="280" alt="红杉 Sequoia 手机界面示意"/>
 </p>
 
 ## 📱 界面预览
@@ -21,7 +21,7 @@
   <img src="https://img.shields.io/badge/format-EPUB%20%7C%20PDF%20%7C%20TXT%20%7C%20MOBI%20%7C%20FB2%20%7C%20HTML%20%7C%20DOCX-orange" alt="format"/>
 </p>
 
-**水杉（Metasequoia）** 是一款面向「墨水屏阅读器 / 手机 / 平板」的本地优先电子书阅读应用。
+**红杉（Sequoia）** 是一款面向「墨水屏阅读器 / 手机 / 平板」的本地优先电子书阅读应用。
 它吸收了 KOReader、Moon+、Kindle、reMarkable、Neo Reader 的优点，解决传统方案的三大痛点：
 
 - 排版与自定义差 → 提供克制的排版引擎与可调字体 / 边距 / 行距
@@ -50,7 +50,7 @@
 - 📊 **阅读统计仪表盘**：主指标 + 每日分钟柱状图 + 12 周热力图 + 按书明细，直接回答「这本书哪天开始看 / 每天读了多少分钟 / 累计几天 / 连续读了几天 / 本期比上期多还是少」；支持日 / 周 / 月、按书筛选、点柱子与热力格看当天明细、点书跳回原文、零数据空状态。当日累计达「打卡阈值」（默认 10 分钟，可设置）自动打卡
 - 🗂 **书架自动整理**：开启「书架按 AI 类型分组」后，书架空按 AI 标签归类，配合顶部标签筛选条快速找书
 - 🧩 **Nexus 能力中心（200 项）**：把 200 个优化 / 新功能归并为 20 个能力簇（导入存储 / 书架元数据 / 阅读交互 / 排版呈现 / 笔记批注 / 搜索导航 / 计划统计 / 朗读 / 可访问性 / 同步 / 智能推荐 / 仪式氛围 / 学习效率 / 设备集成 / 社交共读 / 数据洞察 / 智能自动化 / 创作输出 / 健康护眼 / 工程稳定）。入口在阅读器 `✦`，每项都有可断言的行为契约与自动化回归，详见 `docs/roadmap-100.md` 与 `docs/roadmap-200.md`
-- 🤖 **Android 原生壳**：基于 Capacitor，包名 `com.rayyang.metasequoia`（应用名「水杉阅读」，英文名 **Metasequoia**）
+- 🤖 **Android 原生壳**：基于 Capacitor，包名 `com.rayyang.metasequoia`（应用名「红杉阅读」，英文名 **Sequoia**）
 
 ---
 
@@ -224,7 +224,7 @@ v1.1.18 把产品路线图整批落地。所有能力收敛到独立的 `js/plus
 
 ### Android APK（推荐）
 
-前往 **[Releases](https://github.com/rayyang-dev/ink-reader/releases)** 下载 `Metasequoia-release.apk`（已签名发布版，推荐）或 `Metasequoia-debug.apk`（调试版），
+前往 **[Releases](https://github.com/rayyang-dev/ink-reader/releases)** 下载 `Sequoia-release.apk`（已签名发布版，推荐）或 `Sequoia-debug.apk`（调试版），
 在手机上允许「未知来源」安装即可。无需登录、无后台联网。
 
 > 鸿蒙 NEXT（纯血）已移除 AOSP，**安卓 APK 无法原生安装**；若通过兼容容器（如卓易通）运行，文件选择器可用性取决于容器实现（已做兼容性加固，见下方「鸿蒙 NEXT」）。更稳妥的方式是安装下面的原生 .hap。
@@ -264,11 +264,11 @@ npx cap sync android
 # 3. 构建 Debug 包
 cd android
 ./gradlew assembleDebug
-# 产物：android/app/build/outputs/apk/debug/Metasequoia-debug.apk
+# 产物：android/app/build/outputs/apk/debug/Sequoia-debug.apk
 
 # 4. 构建签名 Release 包（需自行提供 keystore，见下）
 ./gradlew assembleRelease
-# 产物：android/app/build/outputs/apk/release/Metasequoia-release.apk
+# 产物：android/app/build/outputs/apk/release/Sequoia-release.apk
 ```
 
 > 若 `JAVA_HOME` 指向了旧 JDK，请先修正，例如：

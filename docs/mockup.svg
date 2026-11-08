@@ -20,7 +20,7 @@
   <rect x="40" y="80" width="26" height="26" rx="6" fill="#2f6f7a"/>
   <path d="M53 83.25 L56.79 90.29 L54.63 90.29 L58.42 97.88 L47.58 97.88 L51.38 90.29 L49.21 90.29 Z" fill="#fff"/>
   <rect x="51.375" y="97.875" width="3.25" height="4.875" fill="#fff"/>
-  <text x="74" y="100" font-size="18" font-weight="700" fill="#111">水杉阅读 · Metasequoia</text>
+  <text x="74" y="100" font-size="18" font-weight="700" fill="#111">红杉阅读 · Sequoia</text>
   <rect x="306" y="80" width="26" height="20" rx="4" fill="none" stroke="#111" stroke-width="1.6"/>
   <line x1="311" y1="86" x2="327" y2="86" stroke="#111" stroke-width="1.4"/>
   <line x1="311" y1="91" x2="327" y2="91" stroke="#111" stroke-width="1.4"/>

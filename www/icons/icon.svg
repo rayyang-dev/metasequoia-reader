@@ -1,13 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="seal" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#2f6f7a"/>
-      <stop offset="100%" stop-color="#1f4950"/>
+    <linearGradient id="xmasbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B22222"/>
+      <stop offset="100%" stop-color="#8E1B1B"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="512" height="512" rx="110" fill="url(#seal)"/>
-  <g fill="#fff" transform="translate(256,256) scale(9) translate(-24,-24)">
-    <path d="M24 6 L31 19 L27 19 L34 33 L14 33 L21 19 L17 19 Z"/>
-    <rect x="21" y="33" width="6" height="9"/>
+  <rect x="0" y="0" width="512" height="512" rx="110" fill="url(#xmasbg)"/>
+  <g transform="translate(256 256) scale(4.74074) translate(-54 -54)">
+    <path d="M54,30 L66,47 L42,47 Z" fill="#2EA84F"/>
+    <path d="M54,43 L72,63 L36,63 Z" fill="#2EA84F"/>
+    <path d="M54,57 L78,82 L30,82 Z" fill="#2EA84F"/>
+    <path d="M49,82 L59,82 L59,89 L49,89 Z" fill="#7A4A21"/>
+    <path d="M54,19 L55.53,22.90 L59.71,23.15 L56.47,25.80 L57.53,29.85 L54,27.6 L48.29,29.85 L52.47,25.80 L48.29,23.15 L52.47,22.90 Z" fill="#FFD23F"/>
+    <path d="M49.7,37 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" fill="#FFD23F"/>
+    <path d="M43.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" fill="#E2453B"/>
+    <path d="M59.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" fill="#FFD23F"/>
+    <path d="M51.7,68 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z" fill="#FFFFFF"/>
+    <path d="M41,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z" fill="#FFD23F"/>
+    <path d="M63,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z" fill="#E2453B"/>
+    <path d="M52,78 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z" fill="#FFD23F"/>
   </g>
 </svg>

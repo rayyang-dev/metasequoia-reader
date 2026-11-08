@@ -1,12 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M54,21.6 L66.6,37.8 L59.4,37.8 L72,71.2 L36,71.2 L48.6,37.8 L41.4,37.8 Z"/>
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M48.6,71.2 L59.4,71.2 L59.4,87.4 L48.6,87.4 Z"/>
+    <!-- 圣诞树：三层树冠 + 树干 + 顶星 + 挂球 -->
+    <path android:fillColor="#2EA84F" android:pathData="M54,30 L66,47 L42,47 Z"/>
+    <path android:fillColor="#2EA84F" android:pathData="M54,43 L72,63 L36,63 Z"/>
+    <path android:fillColor="#2EA84F" android:pathData="M54,57 L78,82 L30,82 Z"/>
+    <path android:fillColor="#7A4A21" android:pathData="M49,82 L59,82 L59,89 L49,89 Z"/>
+    <path android:fillColor="#FFD23F" android:pathData="M54,19 L55.53,22.90 L59.71,23.15 L56.47,25.80 L57.53,29.85 L54,27.6 L48.29,29.85 L52.47,25.80 L48.29,23.15 L52.47,22.90 Z"/>
+    <path android:fillColor="#FFD23F" android:pathData="M49.7,37 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
+    <path android:fillColor="#E2453B" android:pathData="M43.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
+    <path android:fillColor="#FFD23F" android:pathData="M59.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M51.7,68 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
+    <path android:fillColor="#FFD23F" android:pathData="M41,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
+    <path android:fillColor="#E2453B" android:pathData="M63,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
+    <path android:fillColor="#FFD23F" android:pathData="M52,78 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
 </vector>
