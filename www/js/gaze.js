@@ -29,13 +29,12 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 // ---------- 检测引擎 ----------
 
 // ① MediaPipe FaceLandmarker：478 个关键点含虹膜，y 取「虹膜中心相对眼框」的归一化位置，
-//    比整张脸的位置稳定得多（低头/抬头不会误判）。文件不存在时探测会失败并自动降级。
+//    比整张脸的位置稳定得多（低头/抬头不会误判）。放到 www/js/vendor/mediapipe/ 即自动启用；
+//    加载失败（文件缺失 / 当前 origin 不支持 / wasm 不可用）会抛错，由 pickDetector 的
+//    try/catch 捕获并诚实降级，绝不静默卡死。这里不再用 HEAD 预检——部分静态服务器/WebView
+//    对 HEAD 返回 405，会误判为「文件不存在」而把真·眼球翻页悄悄关掉。
 async function createMediaPipeDetector() {
   const base = 'js/vendor/mediapipe/';
-  try {
-    const head = await fetch(base + 'face_landmarker.task', { method: 'HEAD' });
-    if (!head.ok) return null;
-  } catch (e) { return null; }
   const mod = await import('./vendor/mediapipe/vision_bundle.mjs');
   const { FaceLandmarker, FilesetResolver } = mod;
   const vision = await FilesetResolver.forVisionTasks(base + 'wasm');
