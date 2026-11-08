@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/pro.css" />
     <link rel="stylesheet" href="css/plus.css" />
+    <link rel="stylesheet" href="css/stats.css" />
     <link rel="stylesheet" href="css/ink-flip.css" />
   </head>
   <body data-theme="ink" data-font="serif">
@@ -77,12 +78,8 @@
         <button class="stats-tab" data-stats-tab="month">月</button>
       </div>
       <div class="stats-body">
-        <div class="stats-summary">
-          <div class="ss-item"><div class="ss-val" id="ss-total">0 分钟</div><div class="ss-label">总时长</div></div>
-          <div class="ss-item"><div class="ss-val" id="ss-books">0 本</div><div class="ss-label">阅读书目</div></div>
-          <div class="ss-item"><div class="ss-val" id="ss-checkin">未打卡</div><div class="ss-label">打卡</div></div>
-        </div>
-        <div id="stats-booklist" class="stats-booklist"></div>
+        <!-- v1.1.19：统计仪表盘由 js/stats.js 独立挂载（删除该文件 + css/stats.css 即可回退旧版） -->
+        <div id="stats-root"></div>
       </div>
     </section>
 

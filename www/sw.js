@@ -1,8 +1,8 @@
 // 水杉阅读 —— Service Worker（离线缓存应用外壳）
 // 缓存版本号：每次改动 ASSETS 列表里的任意文件（尤其 js/app.js 等自身脚本）都必须 +1，
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
-const CACHE = 'inkreader-v11';
-const PREV_CACHE = 'inkreader-v10';
+const CACHE = 'inkreader-v12';
+const PREV_CACHE = 'inkreader-v11';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -14,6 +14,7 @@ const VENDOR = [
 ];
 // 完整模块图：漏掉任何一个静态 import 的目标，PWA 离线首启都会因模块图加载失败而白屏。
 // v1.1.18 新增 Plus 层：css/plus.css、js/plus.js、js/plus-core.js（后者被 importers.js 静态 import）。
+// v1.1.19 新增统计仪表盘层：css/stats.css、js/stats.js（由 app.js 静态 import）。
 const ASSETS = [
   './',
   'index.html',
@@ -21,6 +22,7 @@ const ASSETS = [
   'css/style.css',
   'css/pro.css',
   'css/plus.css',
+  'css/stats.css',
   'css/ink-flip.css',
   'js/app.js',
   'js/inkflip.js',
@@ -37,6 +39,7 @@ const ASSETS = [
   'js/pro.js',
   'js/plus.js',
   'js/plus-core.js',
+  'js/stats.js',
   'js/importer-worker.js',
   'js/vendor/fflate.js',
   'js/vendor/pdf.min.js',

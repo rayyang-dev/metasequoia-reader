@@ -37,7 +37,8 @@ const importers = fs.readFileSync(path.join(ROOT, 'js/importers.js'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const main = fs.readFileSync(path.resolve('android/app/src/main/java/com/rayyang/metasequoia/MainActivity.java'), 'utf8');
 const plusSrc = fs.readFileSync(path.join(ROOT, 'js/plus.js'), 'utf8');
-check('SW 缓存已升版到 inkreader-v11', /const CACHE = 'inkreader-v11'/.test(sw));
+check('SW 缓存版本不低于 v12（每次改 app.js 必须升版）',
+  (() => { const m = sw.match(/const CACHE = 'inkreader-v(\d+)'/); return !!m && Number(m[1]) >= 12; })());
 check('SW ASSETS 补齐 plus.css / plus.js / plus-core.js',
   /css\/plus\.css/.test(sw) && /js\/plus\.js/.test(sw) && /js\/plus-core\.js/.test(sw));
 check('SW 实现增量缓存：未变更文件从旧缓存复用',

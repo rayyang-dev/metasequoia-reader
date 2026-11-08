@@ -47,7 +47,7 @@
 - 🤖 **AI 助手（本地优先）**：同一套 Key/模型即可解锁「全书/本章导读、选中即问、书中问答、人物脉络笔记、智能书架标签、段落双语对照」；结果缓存到本机，默认关闭、按需联网
 - 📱 **响应式 + PWA**：同一套界面适配手机 / 平板；可「添加到主屏幕」离线使用
 - 💾 **本地存储**：书籍内容存 IndexedDB，设置 / 进度 / 书签 / 统计 / 标注 / 收藏存 localStorage（均带内存兜底）
-- 📊 **阅读统计与打卡**：按日 / 周 / 月统计读了哪些书、各花多少时间；当日累计达「打卡阈值」（默认 10 分钟，可设置）自动打卡
+- 📊 **阅读统计仪表盘**：主指标 + 每日分钟柱状图 + 12 周热力图 + 按书明细，直接回答「这本书哪天开始看 / 每天读了多少分钟 / 累计几天 / 连续读了几天 / 本期比上期多还是少」；支持日 / 周 / 月、按书筛选、点柱子与热力格看当天明细、点书跳回原文、零数据空状态。当日累计达「打卡阈值」（默认 10 分钟，可设置）自动打卡
 - 🗂 **书架自动整理**：开启「书架按 AI 类型分组」后，书架空按 AI 标签归类，配合顶部标签筛选条快速找书
 - 🤖 **Android 原生壳**：基于 Capacitor，包名 `com.rayyang.metasequoia`（应用名「水杉阅读」，英文名 **Metasequoia**）
 
@@ -142,15 +142,27 @@ v1.1.18 把产品路线图整批落地。所有能力收敛到独立的 `js/plus
 
 ---
 
-## 📊 阅读统计 · 打卡 · 自动整理书架
+## 📊 阅读统计仪表盘 · 打卡 · 自动整理书架
 
-水杉把「读得多认真」也留在本地（同样只存本机、不联网）：
+水杉把「读得多认真」也留在本地（同样只存本机、不联网）。v1.1.19 把原来「三行数字 + 一张分钟表」重做成真正的仪表盘：
 
-- **阅读统计**：底部导航的「统计」进入独立统计页，按 **日 / 周 / 月** 切换，展示总时长、阅读书目数、打卡状态，以及每本书的阅读分钟数明细。
+| 区块 | 回答的问题 | 交互 |
+| --- | --- | --- |
+| 主指标 | 本期读了多少、日均、有阅读天数、连续阅读天数、打卡天数、比上一期多/少 | 「全部 / 单本书」筛选切换 |
+| **每日阅读分钟** | 每天到底读了多少分钟、哪天读得最多 | 柱状图标注分钟数；点一根柱子看当天读了哪些书、各多久 |
+| **阅读节奏** | 最近 12 周哪些天读了、读得多还是少 | 五级墨色热力图，未来日期留白不造假；点格子看当天明细 |
+| **按书看** | **这本书哪天开始看**、读到哪天、共读了几天、累计/本期时长、占比、近 14 天趋势 | 点任意一本直接跳回原文 |
+
+设计取舍：
+
+- **问题优先于数字**：首读日期、每日分钟、连续天数是用户真正会问的问题，三行汇总回答不了，所以做成主视觉。
+- **主视觉是图不是表**：纯 SVG 柱状图 + CSS 热力图，零图表库、零动画（墨水屏友好）、主题自适应；零数据时明确留白并给出「去书架」入口，绝不编造刻度。
+- **零数据迁移**：直接扫描既有 `inkreader:stats` 历史，不新增字段、不改存储结构；升级后旧记录立刻可见。
+- **独立可回退**：全部逻辑在 `js/stats.js` + `css/stats.css`，主控只保留一个 `renderStats()` 委托点；删掉挂载即可恢复旧版。
+- **隐私**：计时与打卡仅存本机 localStorage，不上传、不联网。
+
 - **自动打卡**：在阅读页停留即累计时长；**切到后台或打开任意面板时自动暂停**，避免虚高。当日累计达到「打卡阈值」即自动打卡并弹出轻提示。打卡阈值默认 10 分钟，可在 **设置 → 阅读与书架** 调整（1–60 分钟）。
-- **书架自动整理**：在 **设置 → 阅读与书架** 开启「书架按 AI 类型分组」后，书架空按每本书的 AI 标签归类，未分类的归入「未分类」；书架顶部的标签筛选条可一键按标签过滤。
-
-> 计时与打卡数据仅存于本机 localStorage，不上传、不联网。AI 归类（标签来源）默认关闭、按需使用，不影响离线阅读。
+- **书架自动整理**：在 **设置 → 阅读与书架** 开启「书架按 AI 类型分组」后，书架按每本书的 AI 标签归类，未分类的归入「未分类」；书架顶部的标签筛选条可一键按标签过滤。
 
 ---
 
@@ -189,7 +201,7 @@ v1.1.18 把产品路线图整批落地。所有能力收敛到独立的 `js/plus
 
 ### 📊 阅读统计与自动打卡
 ![阅读统计（日）](docs/screenshots/06-stats-day.png)
-底部导航的「统计」进入**独立统计页**，按 **日 / 周 / 月** 汇总：总时长、阅读书目数、打卡状态，以及每本书的阅读分钟数明细。在阅读页停留即累计时长，切后台或打开面板自动暂停；当日累计达「打卡阈值」（默认 10 分钟）自动打卡。
+底部导航的「统计」进入**独立统计页**：主指标卡（本期时长 / 日均 / 有阅读天数 / 连续阅读 / 打卡 / 环比）→ **每日阅读分钟柱状图** → **12 周阅读节奏热力图** → **按书明细（含首读日期与近 14 天趋势）**。按 **日 / 周 / 月** 切换，可按书筛选，点柱子或热力格看当天明细，点书跳回原文。在阅读页停留即累计时长，切后台或打开面板自动暂停；当日累计达「打卡阈值」（默认 10 分钟）自动打卡。
 
 ### 🗂 书架按 AI 类型自动分组
 ![分组书架](docs/screenshots/03-shelf-grouped.png)
@@ -308,7 +320,7 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 前端：原生 ES Modules（无打包构建）、IndexedDB、Service Worker（PWA）
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
-- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / 冒烟 / 跨文件脚注 / 标注收藏五套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / Plus 层 / 统计仪表盘 / 冒烟 / 跨文件脚注 / 标注收藏七套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
 - 翻页动画：Web Animations API + 纯几何 SVG（变宽笔锋 / 六层叠墨 / 飞白 mask），零 SVG 滤镜、零第三方依赖、不打包大模型
 
 ---
@@ -323,6 +335,7 @@ metasequoia-reader/
 │   ├── css/ink-flip.css            # 水墨翻页独立样式：墨分五色变量 / 留白层级 / 笔锋揭示 / 夜览淡墨 / reduced-motion
 │   ├── css/pro.css                 # Pro 层独立样式：进度条 / 状态灯 / 预告 / 撤销 / 快捷面板 / 夜览（可整体删除回退）
 │   ├── css/plus.css                # Plus 层独立样式：工具箱 / 章节刻度 / 进度环 / 双页并排 / 自定义字体（可整体删除回退）
+│   ├── css/stats.css               # 统计仪表盘独立样式：主指标 / SVG 柱状图 / 12 周热力图 / 按书卡片（零动画、可整体删除回退）
 │   ├── books/sample.js             # 内置示例书《阅读者手记》（无版权风险，用于演示）
 │   └── js/
 │       ├── app.js                  # 主控：书架渲染 / 分页翻页（3D 翻书 + 水墨翻页）/ 底部导航与独立页面切换 / 阅读计时打卡 / 面板与设置接线
@@ -335,6 +348,7 @@ metasequoia-reader/
 │       ├── importers.js            # EPUB / TXT / PDF / MOBI / FB2 / HTML / DOCX 导入解析入口（净化委托 plus-core）
 │       ├── plus-core.js            # Plus 纯逻辑内核：DOMParser 白名单 / 锚点 / 搜索 / 章末停 / Regal / 备份 / 双页判定（零 DOM 副作用）
 │       ├── plus.js                 # Plus UI 与编排：工具箱五页签 / TTS / 目标 / 划词 / 会话 / 备份 / 按书排版
+│       ├── stats.js                # 统计仪表盘：纯函数（首读日期 / 周期 / 环比 / 连续天数 / 热力图）+ DOM 渲染，主控仅一个委托点
 │       ├── mobidec.js              # 自研 MOBI 解析器（App 内直接解析，无需 Calibre）
 │       ├── pdfview.js              # pdf.js 整页渲染（扫描型 PDF 整页显示）
 │       ├── turn.js                 # 统一翻页编排层：串行化 / 冷却 / 预告取消 / 撤销 / 自动翻页节奏
@@ -344,7 +358,7 @@ metasequoia-reader/
 ├── harmony/                        # Capacitor 鸿蒙（HarmonyOS NEXT）原生工程，产出 .hap（rawfile/www 由 cap sync 生成，未进仓库）
 ├── docs/                           # 界面示意图 mockup.svg + 真实截图 screenshots/
 ├── flip-preview.html               # 水墨翻页预览页：前后翻页 / ×2.2 慢放 / 夜览 / 对比旧版 / 静态笔触分解（与 App 共用 inkflip.js）
-├── test/                           # puppeteer-core 真实浏览器回归（pro / ink-flip / plus / smoke / footnote / marks）+ 静态预览服务 + 截图重生成脚本
+├── test/                           # puppeteer-core 真实浏览器回归（pro / ink-flip / plus / stats / smoke / footnote / marks）+ 静态预览服务 + 截图重生成脚本
 ├── capacitor.config.json           # Capacitor 配置（appId / appName / webDir）
 └── README.md
 ```
@@ -356,10 +370,11 @@ metasequoia-reader/
 ## ✅ 测试
 
 ```bash
-npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 冒烟 + 跨文件脚注 + 标注收藏，六套真实浏览器回归
+npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 统计仪表盘 + 冒烟 + 跨文件脚注 + 标注收藏，七套真实浏览器回归
 npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
 npm run test:ink                # 水墨翻页：留白 / 变宽笔锋 / 六层叠墨 / 飞白 / 换页因果 / 异常清理 / 真实 App 集成（46 用例）
-npm run test:plus               # Plus 层：白名单净化 / 锚点 / 搜索 / 决策函数 / 双页 / 真实 App 集成（90 用例）
+npm run test:plus               # Plus 层：白名单净化 / 锚点 / 搜索 / 决策函数 / 双页 / 真实 App 集成（94 用例）
+npm run test:stats              # 统计仪表盘 + 目录/当前章一致性：首读日期 / 每日分钟 / 热力图 / 筛选 / 空状态 / 跨章翻页跟随（72 用例）
 npm run preview:flip            # 启动本地服务，在 http://localhost:4173/flip-preview.html 直观对比新版与旧版
 npm run test:smoke              # 书架按钮 / EPUB 导入 / 图片内联 / 分页 / 控制条（样本书自动合成）
 npm run test:footnote           # 内存合成 EPUB：同文件/跨文件/图片式脚注、旧书兼容（6 用例）
@@ -367,7 +382,7 @@ npm run test:marks              # 标注高亮持久化、收藏、我的页汇�
 node test/regen-screenshots.mjs # 真实浏览器全页面截图，输出至 docs/screenshots/
 ```
 
-五套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`ink-flip.mjs` 会自行拉起 `test/serve.mjs` 静态服务加载预览页，断言笔触几何、换页回调次数与动画清理，`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，均不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
+七套回归都用 `puppeteer-core` + 系统 Chrome 加载真实 `www/`，通过 DOM 事件与 IndexedDB/localStorage 断言端到端行为；`stats.mjs` 的纯函数部分直接在 Node 侧 import（同时验证模块顶层零 DOM 副作用），集成部分会注入一段三章短文本书，真实点击「下一页」跨章，断言阅读页标题与目录高亮始终一致。`ink-flip.mjs` 会自行拉起 `test/serve.mjs` 静态服务加载预览页，断言笔触几何、换页回调次数与动画清理，`footnote.mjs` 与 `marks.mjs` 会在内存中用 fflate 合成 EPUB，均不依赖本机书籍。`test/regen-screenshots.mjs` 对空书架 / 平铺书架 / 分组书架 / 阅读器 / 独立设置页 / 独立统计页 / AI 面板各截一张图。
 
 ---
 

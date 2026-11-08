@@ -5,7 +5,7 @@ import {
   loadProgress, saveProgress, getProgress,
   loadBookmarks, saveBookmarks,
   loadHighlights, saveHighlights, loadFavorites, saveFavorites,
-  addReadingTime, aggregateStats, loadStats, todayKey,
+  addReadingTime, loadStats,
 } from './store.js';
 import { paginateChapter, chapterCharCount } from './paginate.js';
 import { parseTxt, parseEpub, parsePdf, parseMobi, parseFb2, parseHtml, parseDocx } from './importers.js';
@@ -19,6 +19,7 @@ import { createTurnController } from './turn.js';
 import { createGazeEngine } from './gaze.js';
 import { mountReaderPro } from './pro.js';
 import { mountReaderPlus } from './plus.js';
+import { mountStatsDashboard } from './stats.js';
 import { playInkFlip } from './inkflip.js';
 
 // Capacitor 仅存在于原生外壳（Android WebView），由桥接层把插件挂在全局 window.Capacitor.Plugins 上。
@@ -167,6 +168,7 @@ let turn = null;   // 统一翻页编排层
 let gaze = null;   // 视线信号源
 let pro = null;    // 阅读器交互增强层
 let plus = null;   // Plus 能力增强层（独立模块，删除挂载即可完整回退）
+let statsDashboard = null; // v1.1.19 阅读统计仪表盘（独立模块，删除挂载即可完整回退）
 
 const $ = (id) => document.getElementById(id);
 
@@ -712,13 +714,13 @@ async function renderPage() {
         }
       } catch (e) {
         $('page').innerHTML = '<p style="padding:24px">本页渲染失败：' + e.message + '</p>';
-        $('chapter-title').textContent = currentBook.chapters[ci].title;
+        $('chapter-title').textContent = chapterLabel(ci);
         updateProgress();
         return;
       }
     }
     $('page').innerHTML = '<div class="pdfpage"><img src="' + url + '" alt=""></div>';
-    $('chapter-title').textContent = currentBook.chapters[ci].title;
+    $('chapter-title').textContent = chapterLabel(ci);
     document.body.classList.remove('plus-two-up');
     updateProgress();
     if (plus) plus.onPageRendered($('page'));
@@ -735,7 +737,7 @@ async function renderPage() {
   resolvePageImages();       // 把当页 <img data-img> 占位解析为真实图片（仅当页解码）
   enhanceFootnoteMarkers(); // 分页若丢了 <a>，把裸 [n] 补成可点击脚注标记
   applyHighlights();        // 还原本章已保存的正文标注（跨页/重进都在）
-  $('chapter-title').textContent = currentBook.chapters[ci].title;
+  $('chapter-title').textContent = chapterLabel(ci);
   updateProgress();
   if (plus) plus.onPageRendered($('page')); // Plus：记录文字锚点
 }
@@ -757,6 +759,9 @@ async function afterPageTurn(chapterChanged) {
   turnCounter++;
   const src = (turn && turn.getState ? turn.getState().lastSource : '') || 'manual';
   if (plus) plus.onTurn({ chapterChanged, source: src });
+  // 跨章翻页必须同步目录高亮：以前只在打开书/主动跳转时 buildToc()，
+  // 用「下一页」翻进新章节后目录仍高亮旧章，看起来就是「章节和目录对不上」。
+  syncTocActive(false);
   const N = settings.regalRefresh;
   const doFlash = plus
     ? plus.shouldRegal(chapterChanged, turnCounter, N, settings.theme, settings.pageFlip)
@@ -949,7 +954,13 @@ function showView(v, opts = {}) {
   if (!opts.fromBack && v !== currentView) navStack.push(currentView);
   currentView = v;
   showSubView(v);
-  if (v === 'stats') renderStats('day');
+  if (v === 'stats') {
+    // 每次从 Tab 进入统计页都回到「日」，按钮高亮必须与真实 mode 一致，
+    // 否则上次看的「月」内容会被重置、按钮却还亮着，属于明显的状态谎言。
+    document.querySelectorAll('.stats-tab').forEach((t) =>
+      t.classList.toggle('active', t.dataset.statsTab === 'day'));
+    renderStats('day');
+  }
   if (v === 'mine') renderMine();
 }
 // 返回上一视图：阅读器单独处理（含清理）；根视图双击退出（主流 App 做法）
@@ -993,6 +1004,8 @@ function openPanel(id) {
   closePanels();
   $(id).classList.add('open');
   $('panel-mask').classList.add('open');
+  // 长书打开目录时把当前章滚到可视区，否则高亮项在屏幕外，用户会以为「对不上」
+  if (id === 'panel-toc') syncTocActive(true);
 }
 function closePanels() {
   document.querySelectorAll('.panel.open').forEach((p) => p.classList.remove('open'));
@@ -1477,22 +1490,45 @@ async function buildBookContext(book, budget) {
   }
   return '目录：' + titles + '\n\n正文摘录：\n' + text;
 }
+// 目录项与阅读页顶部共用同一个「序号 · 标题」，避免章节重名/标题为空时对不上
+function chapterLabel(i) {
+  const c = currentBook && currentBook.chapters[i];
+  return String(i + 1).padStart(2, '0') + ' · ' + ((c && c.title) || `第 ${i + 1} 节`);
+}
+// 只同步高亮与滚动，不整表重建：跨章翻页时不会丢失目录滚动位置
+function syncTocActive(scroll) {
+  const list = $('toc-list');
+  if (!list || !currentBook) return;
+  let active = null;
+  list.querySelectorAll('.toc-item').forEach((el) => {
+    const on = Number(el.dataset.ci) === ci;
+    el.classList.toggle('active', on);
+    if (on) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
+    if (on) active = el;
+  });
+  if (scroll && active && $('panel-toc').classList.contains('open')) {
+    try { active.scrollIntoView({ block: 'center' }); } catch (e) {}
+  }
+}
 function buildToc() {
   const list = $('toc-list');
   list.innerHTML = '';
   currentBook.chapters.forEach((c, i) => {
     const d = document.createElement('div');
     d.className = 'toc-item' + (i === ci ? ' active' : '');
-    d.textContent = c.title;
+    d.dataset.ci = String(i);
+    d.textContent = chapterLabel(i);
+    if (i === ci) d.setAttribute('aria-current', 'true');
     d.addEventListener('click', () => {
       if (pro) pro.remember(); // 记下跳转前位置，可一键返回
       ci = i; pi = 0;
       paginateCurrentChapter();
       closePanels();
-      afterPageTurn(true);
+      afterPageTurn(true); // 内部会同步目录高亮，不要再手动改 ci
     });
     list.appendChild(d);
   });
+  syncTocActive(false);
 }
 function buildBookmarks() {
   const map = loadBookmarks();
@@ -1835,42 +1871,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- 阅读统计面板 ----------
+// v1.1.19：主控只保留一个委托点，全部计算 / 图表 / 交互在独立的 js/stats.js 里。
+// 想回退旧版三行数字：删掉 createStatsLayer() 调用与 stats.js/css 挂载，恢复本函数旧实现即可。
 function renderStats(mode) {
-  const stats = loadStats();
-  const agg = aggregateStats(stats, mode);
-  const totalMin = Math.round(agg.totalMs / 60000);
-  $('ss-total').textContent = totalMin + ' 分钟';
-  const bookIds = Object.keys(agg.byBook);
-  $('ss-books').textContent = bookIds.length + ' 本';
-  let checkinText = '未打卡';
-  if (mode === 'day') {
-    const today = stats[todayKey()];
-    checkinText = today && today.checkin ? '已打卡 ✓' : '未打卡';
-  } else {
-    checkinText = agg.checkinDays > 0 ? `已打卡 ${agg.checkinDays} 天` : '未打卡';
-  }
-  $('ss-checkin').textContent = checkinText;
-  const list = $('stats-booklist');
-  list.innerHTML = '';
-  if (!bookIds.length) {
-    list.innerHTML = '<p class="empty-tip">本期还没有阅读记录。</p>';
-    return;
-  }
-  listBooksMeta().then((metas) => {
-    if ($('view-stats').classList.contains('hidden')) return; // 统计页已关闭，放弃填充
-    const titleMap = {};
-    metas.forEach((m) => (titleMap[m.id] = m.title));
-    const sorted = bookIds.slice().sort((a, b) => agg.byBook[b] - agg.byBook[a]);
-    sorted.forEach((id) => {
-      const min = Math.round(agg.byBook[id] / 60000);
-      const d = document.createElement('div');
-      d.className = 'stats-book-row';
-      d.innerHTML =
-        `<span class="sb-title">${escapeHtml(titleMap[id] || '未知书目')}</span>` +
-        `<span class="sb-time">${min} 分钟</span>`;
-      list.appendChild(d);
-    });
-  });
+  if (statsDashboard) statsDashboard.render(mode || 'day');
 }
 
 // ---------- AI 面板逻辑 ----------
@@ -2446,11 +2450,27 @@ function createPlusLayer() {
   window.__INK_PLUS = plus; // 只读诊断 / 自动化回归入口
 }
 
+// ---------- 阅读统计仪表盘挂载（v1.1.19，独立层） ----------
+// 只向仪表盘暴露 5 个只读回调 + 2 个导航动作，仪表盘不反向修改主控状态，
+// 因此整个 stats.js / stats.css 可以整层删除而不影响阅读器。
+function createStatsLayer() {
+  statsDashboard = mountStatsDashboard({
+    getStats: () => loadStats(),          // 直接读本地快照，不做任何数据迁移
+    getProgress,                         // (bookId) -> { ci, pi, pct } | null
+    listBooksMeta,                       // () -> Promise<[{ id, title }]>
+    goShelf: () => showView('shelf', { reset: true }),
+    openBook: (id) => { openBook(id); },
+    now: () => new Date(),
+  });
+  window.__INK_STATS = statsDashboard; // 只读诊断 / 自动化回归入口
+}
+
 // ---------- 启动 ----------
 function init() {
   applySettings();
   createProLayer();
   createPlusLayer();
+  createStatsLayer();
   bindEvents();
   renderShelf();
   ensureBookMeta();
