@@ -20,6 +20,7 @@ import { createGazeEngine } from './gaze.js';
 import { mountReaderPro } from './pro.js';
 import { mountReaderPlus } from './plus.js';
 import { mountStatsDashboard } from './stats.js';
+import { mountReaderNexus } from './nexus.js';
 import { playInkFlip } from './inkflip.js';
 
 // Capacitor 仅存在于原生外壳（Android WebView），由桥接层把插件挂在全局 window.Capacitor.Plugins 上。
@@ -169,6 +170,7 @@ let gaze = null;   // 视线信号源
 let pro = null;    // 阅读器交互增强层
 let plus = null;   // Plus 能力增强层（独立模块，删除挂载即可完整回退）
 let statsDashboard = null; // v1.1.19 阅读统计仪表盘（独立模块，删除挂载即可完整回退）
+let nexus = null;          // v1.2.0 Nexus 能力层（独立模块，删除挂载即可完整回退）
 
 const $ = (id) => document.getElementById(id);
 
@@ -515,7 +517,9 @@ function renderBookCard(b) {
   const del = card.querySelector('.bc-del');
   del.addEventListener('click', async (e) => {
     e.stopPropagation();
-    if (confirm(`确定从本机删除《${b.title}》？此操作不可恢复。`)) {
+    // Nexus 回收站：删前留一份 30 天可恢复的副本，文案也不再宣称「不可恢复」
+    if (confirm(`将《${b.title}》移入回收站？30 天内可在「能力中心 → 书架」恢复。`)) {
+      if (nexus) { const full = await getBook(b.id); if (full) nexus.onBookDelete(full); }
       await deleteBook(b.id);
       if (activeCategory === cat && !(settings.categories || []).includes(cat)) activeCategory = null;
       renderShelf();
@@ -543,7 +547,16 @@ async function importBook(book) {
     maybeAutoSummary(book);
     return true;
   } catch (e) {
-    alert('导入失败：' + e.message);
+    // Nexus：按「存储 / 权限 / 文件损坏 / 格式不支持」给出不同动作，不再统一一句「导入失败」
+    const c = nexus ? nexus.onImportError(e) : null;
+    const msg = c ? ({
+      storage: '存储空间不足，请先导出备份再清理回收站',
+      permission: '读取被拒绝，请重试或换一个文件',
+      corrupt: '文件可能已损坏，请重新选择',
+      format: '该格式暂不支持，建议先用 Calibre 转为 EPUB',
+      unknown: '导入失败：' + e.message,
+    }[c.kind] || '导入失败：' + e.message) : '导入失败：' + e.message;
+    alert(msg);
     return false;
   }
 }
@@ -2218,10 +2231,15 @@ function bindEvents() {
     const chromeVisible = !$('reader').classList.contains('hide-chrome');
     if (chromeVisible) $('reader').classList.add('hide-chrome');
     const rect = e.currentTarget.getBoundingClientRect();
-    const r = (e.clientX - rect.left) / rect.width;
     const go = (dir) => (turn ? turn.request(dir, 'tap') : (dir === 'prev' ? prevPage() : nextPage()));
-    if (r < 0.3) go('prev');
-    else if (r > 0.7) go('next');
+    // 热区交给 Nexus 能力层判定（可配边缘宽度 / 三区五区 / 左右手互换）；
+    // 未挂载时保持原来的 0.3 / 0.7 行为，保证整层删除可回退。
+    const zone = nexus
+      ? nexus.hitZone(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height)
+      : ((e.clientX - rect.left) / rect.width < 0.3 ? 'prev'
+        : (e.clientX - rect.left) / rect.width > 0.7 ? 'next' : 'menu');
+    if (zone === 'prev') go('prev');
+    else if (zone === 'next') go('next');
     else if (!chromeVisible) $('reader').classList.remove('hide-chrome');
   });
 
@@ -2336,6 +2354,16 @@ function bindEvents() {
   // 键盘（桌面）
   document.addEventListener('keydown', (e) => {
     if ($('reader').classList.contains('hidden')) return;
+    // Nexus 键位映射（外接键盘 / 翻页笔）：用户配置过的键优先，未配置保持原行为
+    const mapped = nexus ? nexus.keyAction(e.key) : null;
+    if (mapped) {
+      e.preventDefault();
+      if (mapped === 'next' || mapped === 'prev') { turn ? turn.request(mapped, 'key') : (mapped === 'next' ? nextPage() : prevPage()); }
+      else if (mapped === 'toc') openPanel('panel-toc');
+      else if (mapped === 'close') closePanels();
+      else if (mapped === 'menu') $('reader').classList.toggle('hide-chrome');
+      return;
+    }
     if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); turn ? turn.request('next', 'key') : nextPage(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); turn ? turn.request('prev', 'key') : prevPage(); }
     else if (e.key === 'Escape') closePanels();
@@ -2465,12 +2493,41 @@ function createStatsLayer() {
   window.__INK_STATS = statsDashboard; // 只读诊断 / 自动化回归入口
 }
 
+// ---------- Nexus 能力层挂载（v1.2.0，独立层） ----------
+// 与 Plus / Stats 同构：只注入只读数据回调与导航动作，能力层不反向修改主控状态。
+// 删掉本函数 + import + index.html 的 css/nexus.css 即可整体回退。
+function createNexusLayer() {
+  nexus = mountReaderNexus({
+    getMetas: () => listBooksMeta(),
+    getBooks: () => getAllBooks(),
+    putBook: (b) => putBook(b),
+    deleteBook: (id) => deleteBook(id),
+    getProgress: (id) => getProgress(id),
+    getStats: () => loadStats(),
+    openBook: (id, jump) => openBook(id, jump),
+    showToast: (m) => showToast(m),
+    refreshShelf: () => renderShelf(),
+    closePanels: () => closePanels(),
+    jumpTo: (j) => {
+      if (!currentBook) { showToast('请先打开一本书，再使用快捷跳转'); return; }
+      if (j.kind === 'pct') seekByPct(j.value);
+      else if (j.kind === 'chapter') {
+        ci = Math.max(0, Math.min(currentBook.chapters.length - 1, j.value));
+        pi = 0; paginateCurrentChapter(); afterPageTurn(true);
+      } else if (j.kind === 'page') { pi = j.value; renderPage(); afterPageTurn(false); }
+    },
+    now: () => new Date(),
+  });
+  window.__INK_NEXUS = nexus; // 只读诊断 / 自动化回归入口
+}
+
 // ---------- 启动 ----------
 function init() {
   applySettings();
   createProLayer();
   createPlusLayer();
   createStatsLayer();
+  createNexusLayer();
   bindEvents();
   renderShelf();
   ensureBookMeta();

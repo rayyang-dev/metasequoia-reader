@@ -49,6 +49,7 @@
 - 💾 **本地存储**：书籍内容存 IndexedDB，设置 / 进度 / 书签 / 统计 / 标注 / 收藏存 localStorage（均带内存兜底）
 - 📊 **阅读统计仪表盘**：主指标 + 每日分钟柱状图 + 12 周热力图 + 按书明细，直接回答「这本书哪天开始看 / 每天读了多少分钟 / 累计几天 / 连续读了几天 / 本期比上期多还是少」；支持日 / 周 / 月、按书筛选、点柱子与热力格看当天明细、点书跳回原文、零数据空状态。当日累计达「打卡阈值」（默认 10 分钟，可设置）自动打卡
 - 🗂 **书架自动整理**：开启「书架按 AI 类型分组」后，书架空按 AI 标签归类，配合顶部标签筛选条快速找书
+- 🧩 **Nexus 能力中心（200 项）**：把 200 个优化 / 新功能归并为 20 个能力簇（导入存储 / 书架元数据 / 阅读交互 / 排版呈现 / 笔记批注 / 搜索导航 / 计划统计 / 朗读 / 可访问性 / 同步 / 智能推荐 / 仪式氛围 / 学习效率 / 设备集成 / 社交共读 / 数据洞察 / 智能自动化 / 创作输出 / 健康护眼 / 工程稳定）。入口在阅读器 `✦`，每项都有可断言的行为契约与自动化回归，详见 `docs/roadmap-100.md` 与 `docs/roadmap-200.md`
 - 🤖 **Android 原生壳**：基于 Capacitor，包名 `com.rayyang.metasequoia`（应用名「水杉阅读」，英文名 **Metasequoia**）
 
 ---
@@ -320,7 +321,7 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 前端：原生 ES Modules（无打包构建）、IndexedDB、Service Worker（PWA）
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
-- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / Plus 层 / 统计仪表盘 / 冒烟 / 跨文件脚注 / 标注收藏七套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
+- 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / Plus 层 / 统计仪表盘 / Nexus 200 项能力 / 冒烟 / 跨文件脚注 / 标注收藏 八套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
 - 翻页动画：Web Animations API + 纯几何 SVG（变宽笔锋 / 六层叠墨 / 飞白 mask），零 SVG 滤镜、零第三方依赖、不打包大模型
 
 ---
@@ -370,7 +371,8 @@ metasequoia-reader/
 ## ✅ 测试
 
 ```bash
-npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 统计仪表盘 + 冒烟 + 跨文件脚注 + 标注收藏，七套真实浏览器回归
+npm test                        # 打包闸门：Pro 层 + 水墨翻页 + Plus 层 + 统计仪表盘 + Nexus 200 项能力 + 冒烟 + 跨文件脚注 + 标注收藏，八套真实浏览器回归
+npm run test:nexus              # Nexus 能力层：200 项行为契约 + 真实 App 集成（243 用例）
 npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
 npm run test:ink                # 水墨翻页：留白 / 变宽笔锋 / 六层叠墨 / 飞白 / 换页因果 / 异常清理 / 真实 App 集成（46 用例）
 npm run test:plus               # Plus 层：白名单净化 / 锚点 / 搜索 / 决策函数 / 双页 / 真实 App 集成（94 用例）

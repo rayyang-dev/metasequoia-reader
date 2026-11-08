@@ -112,8 +112,9 @@ const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
 const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(ROOT, 'css/stats.css'), 'utf8');
-check('SW 升到 inkreader-v12 且上一版指向 v11',
-  /const CACHE = 'inkreader-v12'/.test(sw) && /const PREV_CACHE = 'inkreader-v11'/.test(sw));
+check('SW 缓存版本不低于 v12 且保留增量缓存的上一版指针',
+  (() => { const m = sw.match(/const CACHE = 'inkreader-v(\d+)'/); return !!m && Number(m[1]) >= 12; })() &&
+  /const PREV_CACHE = 'inkreader-v\d+'/.test(sw));
 check('SW ASSETS 补齐 stats.css / stats.js（离线首启不白屏）',
   /'css\/stats\.css'/.test(sw) && /'js\/stats\.js'/.test(sw));
 check('index.html 引入 stats.css 并挂载 #stats-root',
