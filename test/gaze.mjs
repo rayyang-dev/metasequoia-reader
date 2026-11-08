@@ -71,6 +71,23 @@ async function main() {
     check('冷却期内不重复触发（防连翻）', again.fire === false);
   }
 
+  // 4b. 回归：读到页底后「停顿再抬眼」也应翻页（旧逻辑要求回看在 ~1.1s 内完成，
+  //      读完最后一行停顿后再抬眼会静默复位、一页都不翻——正是用户遇到的「不灵敏」）。
+  {
+    let s = { phase: 'tracking', bottomSince: 0, bottomY: 0, lastFireAt: -Infinity };
+    for (let t = 100; t <= 500; t += 80) s = gazeSweepDecision(s, 0.82, CFG, RANGE, t);
+    check('页底驻留进入 bottom 相位（前置）', s.phase === 'bottom');
+    // 停顿到 t=1200（距首次触底 1100ms，已超出旧窗口 1092ms）再回看页首
+    const r = gazeSweepDecision(s, 0.14, CFG, RANGE, 1200);
+    check('页底后停顿再回看页首仍触发翻页（修「不灵敏」）', r.fire === true);
+    // 远超窗口且已离开页底区域：应复位回 tracking，不再卡在 bottom 误判
+    const stuck = gazeSweepDecision(
+      { phase: 'bottom', bottomSince: 100, bottomY: 0.82, lastFireAt: -Infinity },
+      0.45, CFG, RANGE, 100 + 6000 + 10
+    );
+    check('远超窗口且离开页底 -> 复位 tracking（防卡死）', stuck.phase === 'tracking');
+  }
+
   // 5. 摄像头错误分类（纯函数，覆盖权限/无设备/被占用/超时/WebView不支持/其他）
   {
     const perm = classifyCameraError({ name: 'NotAllowedError' });

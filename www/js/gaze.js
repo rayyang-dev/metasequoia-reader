@@ -143,18 +143,25 @@ async function pickDetector(prefer) {
 export function gazeSweepDecision(s, y, cfg, rangeObj, t) {
   const { top, bottom, span } = rangeObj;
   const k = (cfg.sensitivity - 1) / 4;
-  const bottomLine = bottom - span * (0.24 - k * 0.10);
-  const topLine = top + span * (0.38 - k * 0.10);
-  const sweepNeeded = span * (0.60 - k * 0.22);
-  const dwell = cfg.dwellMs * (1.35 - k * 0.5);
-  const sweepWindow = 820 - k * 160;
+  // 灵敏度越高（k 越大），阈值越宽松：更易触发，减少「该翻不翻」。
+  // 两阶段判据（页底驻留 -> 回看页首）本身已挡掉低头/走神/看图等非翻页动作，
+  // 因此回看窗口可以放得比较宽，给「读完最后一行再抬眼」的自然节奏留足余量，
+  // 不再因「读完停顿太久才抬眼」而悄悄复位、导致一页都不翻。
+  const bottomLine = bottom - span * (0.20 - k * 0.08);
+  const topLine = top + span * (0.34 - k * 0.10);
+  const sweepNeeded = span * (0.46 - k * 0.14);
+  const dwell = cfg.dwellMs * (1.25 - k * 0.40);
+  const sweepWindow = 1500 - k * 200;
   let { phase, bottomSince, bottomY, lastFireAt } = s;
   let fire = false, detail = '';
   if (t - lastFireAt < cfg.cooldownMs) return { phase, bottomSince, bottomY, lastFireAt, fire: false, detail: '' };
   if (phase === 'bottom') {
-    if (t - bottomSince > 9000) { phase = 'tracking'; return { phase, bottomSince: 0, bottomY: 0, lastFireAt, fire: false, detail: '已重置，继续阅读' }; }
+    // 已确认在页底：只要回到页首区域即翻；时间窗只用来防止长时间不动后误触发。
+    // 注意：不再要求「回看必须在 dwell 之后的极短窗口内完成」——那是此前「读到页尾却
+    // 不翻页」的根因（用户读完最后一行、停顿、再抬眼，往往已超过旧窗口而静默复位）。
+    if (t - bottomSince > 6000) { phase = 'tracking'; return { phase, bottomSince: 0, bottomY: 0, lastFireAt, fire: false, detail: '已重置，继续阅读' }; }
     const drop = bottomY - y;
-    if (drop >= sweepNeeded && y <= topLine && t - bottomSince <= sweepWindow + dwell) {
+    if (drop >= sweepNeeded && y <= topLine) {
       phase = 'sweep'; lastFireAt = t;
       return { phase, bottomSince, bottomY, lastFireAt, fire: true, detail: '检测到回扫，准备翻页' };
     }
@@ -288,7 +295,7 @@ export function createGazeEngine(opts) {
   function config() {
     const c = getConfig() || {};
     return {
-      sensitivity: CLAMP(Number(c.gazeSensitivity) || 3, 1, 5),
+      sensitivity: CLAMP(Number(c.gazeSensitivity) || 4, 1, 5),
       dwellMs: Number(c.gazeDwellMs) || 320,
       // 演示（sim）模式用更短的冷却，让翻页节奏清晰可见；真实检测仍走配置值。
       cooldownMs: simInjected ? 1000 : (Number(c.gazeCooldownMs) || 1600),
@@ -436,7 +443,10 @@ export function createGazeEngine(opts) {
       return;
     }
     lostSince = 0;
-    const alpha = 0.38;
+    // 平滑系数：偏小（0.30）让视线从页底跳回页首时更快越过 topLine，
+    // 给回扫判定留出时间余量，避免「该翻不翻」。过小会放大抖动，0.30 是灵敏度与稳
+    // 定性的折中。
+    const alpha = 0.30;
     smoothed = smoothed == null ? r.y : smoothed * (1 - alpha) + r.y * alpha;
 
     // 校准采集：先看页顶、再看页底，各取该阶段的中位值

@@ -82,8 +82,8 @@ export function mountReaderPro(ctx) {
           <input id="pro-confirm" type="range" min="0" max="2000" step="100" value="700" aria-label="翻页前预告时长" />
           <span class="pro-val" id="pro-confirm-val">700ms</span></div></div>
         <div class="pro-row"><span>视线灵敏度</span><div class="pro-ctl">
-          <input id="pro-sens" type="range" min="1" max="5" step="1" value="3" aria-label="视线灵敏度" />
-          <span class="pro-val" id="pro-sens-val">3</span></div></div>
+          <input id="pro-sens" type="range" min="1" max="5" step="1" value="4" aria-label="视线灵敏度" />
+          <span class="pro-val" id="pro-sens-val">4</span></div></div>
         <div class="pro-row"><span>视线引擎</span><div class="pro-ctl">
           <select id="pro-gaze-engine" aria-label="视线检测引擎">
             <option value="auto">自动（真实·端侧）</option>
@@ -145,6 +145,11 @@ export function mountReaderPro(ctx) {
   function setStatus(phase, text) {
     const box = $('pro-status');
     if (box) box.dataset.phase = phase;
+    // 稳态不显示常驻文字条：tracking（视线追踪中/每 N 秒一页）与 off 都属于「背景态」，
+    // 常驻提示会遮挡正文（用户反馈「视线追踪中」一直挡住文章内容）。只在 bottom（已读页底）、
+    // sweep（准备翻页）、unavailable（不可用已降级）、lost（未检测到面部）、paused（已暂停）、
+    // starting（初始化中）等有意义的瞬态/异常态才显示，既保留「可解释」，又不再挡正文。
+    if (phase === 'off' || phase === 'tracking') { box.classList.remove('pro-on'); return; }
     if (runtimeMode === 'off' && phase !== 'unavailable') { box.classList.remove('pro-on'); return; }
     box.classList.add('pro-on');
     $('pro-status-text').textContent = text || '';
@@ -284,7 +289,7 @@ export function mountReaderPro(ctx) {
     $('pro-interval-val').textContent = $('pro-interval').value + 's';
     $('pro-confirm').value = String(clamp(num(st.autoConfirmMs, 700), 0, 2000));
     $('pro-confirm-val').textContent = $('pro-confirm').value + 'ms';
-    $('pro-sens').value = String(clamp(num(st.gazeSensitivity, 3), 1, 5));
+    $('pro-sens').value = String(clamp(num(st.gazeSensitivity, 4), 1, 5));
     $('pro-sens-val').textContent = $('pro-sens').value;
     const ge = $('pro-gaze-engine');
     if (ge) ge.value = (st.gazeEngine === 'sim' ? 'sim' : 'auto');

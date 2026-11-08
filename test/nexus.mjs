@@ -278,7 +278,7 @@ check('删书文案不再宣称「不可恢复」', /30 天内可在/.test(app))
 check('CSS 零动画（墨水屏原则）', !/animation\s*:|transition\s*:/.test(nxCss));
 check('package.json 纳入 test:nexus 且 npm test 含第八套',
   !!pkg.scripts['test:nexus'] && /test\/nexus\.mjs/.test(pkg.scripts.test));
-check('版本升到 versionCode 25 / 1.4.0', /versionCode 25/.test(gradle) && /versionName "1\.4\.0"/.test(gradle));
+check('版本升到 versionCode 27 / 1.4.2', /versionCode 27/.test(gradle) && /versionName "1\.4\.2"/.test(gradle));
 const roadIds = (roadmap.match(/R-[0-9]{3}/g) || []).filter((v, i, a) => a.indexOf(v) === i);
 check('路线图文件含 200 个编号项与总览',
   roadIds.length === 200 && /合计 200/.test(roadmap));
