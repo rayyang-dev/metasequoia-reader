@@ -37,7 +37,7 @@
 - 📚 **多格式导入**：EPUB / PDF / TXT / MOBI / FB2 / HTML / DOCX，App 内原生解析，MOBI 无需借助 Calibre（AZW3/KFX 仍建议用 Calibre 转 EPUB）
 - 📖 **分页式阅读**：非滚动，按屏幕真实分页，接近纸质书体验
 - ⚡ **墨水屏友好**：默认翻页零动画、按设置周期整屏刷新（Regal）规避残影；可在设置开启「翻页动画」，手机端像翻书一样过渡
-- 🖌 **水墨翻页（重做）**：「一笔过纸，墨渗字显」——落笔运锋 → 墨满换页 → 收笔渗显；前后方向镜像、按真实视口生成笔触、三层浓淡 + 宣纸渗墨毛边 + 错落墨点，约 0.7s 完成（旧版 1.95s，详见「水墨翻页」一节）
+- 🖌 **水墨翻页（毛笔重做）**：「一笔扫过，墨留纸上，字随笔生」——留白不遮屏，变宽笔锋有藏锋/铺毫/出锋，六层同心叠墨见「墨分五色」，mask 挖出丝丝飞白；旧字墨化、新字渗显，约 0.8s（旧版 1.95s，详见「水墨翻页」一节）
 - 🎨 **3 款主题皮肤**：墨水风（宣纸底·水墨笔意翻页）/ 简约（米白底·整页水平滑动）/ 夜览（低亮度暖灰·淡墨），阅读内 `Aa` 面板一点即换
 - 👁 **自动翻页系统**：定时 / 跟随你的翻页节奏 / **视线回扫**（读到页底、视线回到页首即翻页）。带校准、灵敏度、翻页前可取消预告、误翻一键撤销、状态灯与自动降级；摄像头帧严格端侧处理，默认关闭
 - 🧭 **阅读内快捷设置**：常驻进度条（可拖动跳章）、字号/行距/主题/亮度即时调整、首次引导、滑动与音量键翻页、跳转后一键返回原位置
@@ -124,21 +124,24 @@
 ![阅读内页](docs/screenshots/03-reader.png)
 按屏幕真实尺寸分页（非滚动）。**默认翻页零动画、整屏反相刷新（Regal）** 规避残影；可在 **设置 → 屏幕与翻页** 开启「翻页动画」：简约主题走整页 3D 翻书过渡，墨水风主题走下方的水墨翻页。可调字体 / 边距 / 行距 / 段距 / 字间距、两端对齐与首行缩进。
 
-### 🖌 水墨翻页（一笔过纸，墨渗字显）
-旧版是「一张固定 340×470 的 SVG 墨迹图拉伸铺满 + 1.95s 模糊淡入淡出」：没有方向、边角变形、墨迹与换页各跑各的，像盖了层脏玻璃。新版把翻页当成**一次运笔**来编排：
+### 🖌 水墨翻页（一笔扫过，墨留纸上，字随笔生）
+最早是「固定 340×470 墨迹图拉伸铺满 + 1.95s 模糊淡入淡出」；v1.1.16 改成墨带横扫，仍是**整屏深色遮罩 + 三条等宽波浪线 + 圆点**，像黑色百叶窗，没有留白也没有笔意。现在按中国画的逻辑重做：纸永远是纸，翻页是**一次运笔**，靠「字的墨色浓淡」过渡而不是遮盖偷换。
 
 | 阶段 | 时序 | 视觉 |
 | --- | --- | --- |
-| ① 落笔 | 0–300ms | 墨带自起笔侧洇开，三层浓淡笔锋沿宣纸运过，错落墨点溅落 |
-| ② 墨满换页 | 300ms | 墨色完全覆纸的一瞬替换正文，视觉上是「墨过之处，已是新页」 |
-| ③ 收笔渗显 | 300–800ms | 墨从对侧被纸吸去，新页文字由淡渐浓自纸纤维渗出，一抹纸光掠过 |
+| ① 藏锋 | 0–90ms | 起笔一点焦墨洇开，笔锋沿中轴生长（`clip-path` 揭示，前端细如笔尖） |
+| ② 行笔 / 旧字墨化 | 40–330ms | 六层同心墨色随笔势铺开；旧页克隆由浓到淡、由清到化，新页保持「未显」 |
+| ③ 笔锋过半换页 | 330ms | 旧字已化尽、新字未显，纸仍是纸；此刻替换正文 |
+| ④ 收笔渗显 | 330–800ms | 新字由淡到浓自纸中浮出，淡墨先退、焦墨后退，笔意渐干，最后只剩留白 |
 
-- **有方向**：下一页左→右起笔，上一页右→左，笔触 / 墨点 / 纸光全部镜像；
-- **不变形**：SVG `viewBox` 按真实视口像素生成，路径按实际尺寸计算，横竖屏 / 平板都不拉伸；
-- **有笔意**：三层浓淡（主笔 / 伴笔 / 飞白）+ `feTurbulence` 位移做宣纸渗墨毛边 + 8 个随机墨点，每次翻页用不同种子，像每次落笔都不同；
-- **工程可靠**：用 Web Animations API 而非 CSS keyframes（不受全局 `*{animation:none!important}` 影响），可 `await` 精确编排；`finally` 统一 `cancel()` + 移除墨层，渲染抛错也绝不留下遮住整屏的墨层；尊重 `prefers-reduced-motion`，夜览自动切淡墨变量。
+- **留白优先**：墨只落在笔锋扫过的一带（不超过页高 45%），上下始终是宣纸，绝不用色块盖满整屏；
+- **是真笔触**：沿中轴采样 48 点生成**变宽封闭轮廓**——藏锋钝头 → 铺毫的稳定笔身 → 提笔出锋；不是等宽 `stroke`，也不是把固定 SVG 拉伸到全屏；
+- **墨分五色**：水痕 / 湿墨 / 笔身 / 浓墨 / 笔心 / 骨线 六层同心叠墨，边缘清淡、笔心焦浓，纸色能从墨里透出来；
+- **飞白与生宣**：`mask` 沿笔势挖出丝丝露白（露的是纸，不是白颜料），侧锋几何抖动做吸墨不匀的毛边；**全程不用 SVG 滤镜**，避免 WebView 逐帧重算掉帧；
+- **有方向**：下一页左→右、上一页右→左，笔触 / 甩墨 / 揭示方向全部镜像；`viewBox` 按真实视口像素生成，横竖屏 / 平板都不变形；
+- **工程可靠**：Web Animations API 精确编排（不受全局 `*{animation:none!important}` 影响），不写任何 inline style；`finally` 统一取消动画并一次移除墨层与旧页克隆，渲染抛错也绝不留残影；尊重 `prefers-reduced-motion`，夜览自动切淡墨。
 
-预览：`npm run preview:flip` 后打开 `http://localhost:4173/flip-preview.html`，可切换前后翻页、×2.2 慢放、夜览，以及「对比旧版」并排看差异。预览页与 App 共用同一份 `www/js/inkflip.js`，保证所见即所得。
+预览：`npm run preview:flip` 后打开 `http://localhost:4173/flip-preview.html`，可切换前后翻页、×2.2 慢放、夜览、「对比旧版」，还有「这一笔，摊开来看」静态笔触分解卡。预览页与 App 共用同一份 `www/js/inkflip.js`，所见即所得。
 
 ### 🎨 主题皮肤 + 底部导航 + 独立页面
 ![设置·主题皮肤](docs/screenshots/04-settings.png)
@@ -266,7 +269,7 @@ keytool -genkeypair -v -keystore release-key.jks -alias inkreader \
 - 解析：[fflate](https://github.com/101arrowz/fflate)（EPUB / DOCX）、[pdf.js v4](https://github.com/mozilla/pdf.js)（PDF）、自研 MOBI 解析器、原生 DOMParser（FB2 / HTML）
 - 原生壳：Capacitor 8（Android / HarmonyOS NEXT；`android/` 为安卓工程，`harmony/` 为鸿蒙原生 .hap 工程）
 - 测试：`puppeteer-core` + 系统 Chrome 的真实浏览器端到端（`npm test`，含 Pro 层 / 水墨翻页 / 冒烟 / 跨文件脚注 / 标注收藏五套回归），另附 `test/regen-screenshots.mjs` 生成界面截图
-- 翻页动画：Web Animations API（`js/inkflip.js`）+ SVG 渗墨滤镜，零第三方依赖、不打包大模型
+- 翻页动画：Web Animations API + 纯几何 SVG（变宽笔锋 / 六层叠墨 / 飞白 mask），零 SVG 滤镜、零第三方依赖、不打包大模型
 
 ---
 
@@ -277,12 +280,12 @@ metasequoia-reader/
 ├── www/                            # Web 应用（PWA 入口，也是 Capacitor 的 webDir）
 │   ├── index.html                  # 单页结构：书架 / 阅读器 / 统计页 / 我的页 / 设置页 / 底部导航栏（阅读器内仍保留目录/书签/AI 侧滑面板）
 │   ├── css/style.css               # 墨水屏主题与主样式（3 款皮肤 / 简约主题 3D 翻书 / Regal 整屏反色 / 纸感设计令牌；旧水墨 keyframes 已迁出）
-│   ├── css/ink-flip.css            # 水墨翻页独立样式：浓淡墨变量 / 宣纸纤维 / 方向镜像 / 夜览淡墨 / reduced-motion
+│   ├── css/ink-flip.css            # 水墨翻页独立样式：墨分五色变量 / 留白层级 / 笔锋揭示 / 夜览淡墨 / reduced-motion
 │   ├── css/pro.css                 # Pro 层独立样式：进度条 / 状态灯 / 预告 / 撤销 / 快捷面板 / 夜览（可整体删除回退）
 │   ├── books/sample.js             # 内置示例书《阅读者手记》（无版权风险，用于演示）
 │   └── js/
 │       ├── app.js                  # 主控：书架渲染 / 分页翻页（3D 翻书 + 水墨翻页）/ 底部导航与独立页面切换 / 阅读计时打卡 / 面板与设置接线
-│       ├── inkflip.js              # 水墨翻页：按视口生成笔触 SVG + Web Animations API 三段式编排（预览页共用）
+│       ├── inkflip.js              # 水墨翻页：变宽笔锋几何 / 六层同心叠墨 / 飞白 mask / 旧字墨化新字渗显（预览页共用）
 │       ├── store.js                # 存储层：IndexedDB 存书籍 + localStorage 存设置/进度/书签/统计/标注/收藏（均带内存兜底）
 │       ├── paginate.js             # 按屏幕真实尺寸的分页引擎（非滚动）
 │       ├── translate.js            # 中英互译（mock / DeepL / Google / 通用 LLM 可插拔）
@@ -297,7 +300,7 @@ metasequoia-reader/
 ├── android/                        # Capacitor 生成的 Android 原生工程（包名 com.rayyang.metasequoia）
 ├── harmony/                        # Capacitor 鸿蒙（HarmonyOS NEXT）原生工程，产出 .hap（rawfile/www 由 cap sync 生成，未进仓库）
 ├── docs/                           # 界面示意图 mockup.svg + 真实截图 screenshots/
-├── flip-preview.html               # 水墨翻页独立预览页：前后翻页 / ×2.2 慢放 / 夜览 / 对比旧版（与 App 共用 inkflip.js）
+├── flip-preview.html               # 水墨翻页预览页：前后翻页 / ×2.2 慢放 / 夜览 / 对比旧版 / 静态笔触分解（与 App 共用 inkflip.js）
 ├── test/                           # puppeteer-core 真实浏览器回归（pro / ink-flip / smoke / footnote / marks）+ 静态预览服务 + 截图重生成脚本
 ├── capacitor.config.json           # Capacitor 配置（appId / appName / webDir）
 └── README.md
@@ -312,7 +315,7 @@ metasequoia-reader/
 ```bash
 npm test                        # 打包闸门：Pro 层 + 水墨翻页 + 冒烟 + 跨文件脚注 + 标注收藏，五套真实浏览器回归
 npm run test:pro                # 翻页编排层与视线回扫状态机（模拟视线，无需真机摄像头）15 用例
-npm run test:ink                # 水墨翻页：视口笔触 / 方向镜像 / 换页时序 / 异常清理 / 夜览淡墨 / 真实 App 集成（29 用例）
+npm run test:ink                # 水墨翻页：留白 / 变宽笔锋 / 六层叠墨 / 飞白 / 换页因果 / 异常清理 / 真实 App 集成（46 用例）
 npm run preview:flip            # 启动本地服务，在 http://localhost:4173/flip-preview.html 直观对比新版与旧版
 npm run test:smoke              # 书架按钮 / EPUB 导入 / 图片内联 / 分页 / 控制条（样本书自动合成）
 npm run test:footnote           # 内存合成 EPUB：同文件/跨文件/图片式脚注、旧书兼容（6 用例）

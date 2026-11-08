@@ -3,30 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>水杉 · 水墨翻页实测</title>
+<title>水杉 · 水墨翻页 · 一笔</title>
 <link rel="stylesheet" href="./www/css/ink-flip.css">
 <style>
   * { box-sizing: border-box; }
-  body {
+  :root {
     --bg: #e9e3d5; --paper: #faf7ef; --fg: #202b31; --fg-soft: #6c6a61;
-    --line: #d6cdb9; --accent: #2f6f7a;
-    margin: 0; padding: 28px 16px 44px; min-height: 100vh;
+    --line: #d6cdb9; --accent: #2f6f7a; --seal: #9d2b1f;
+  }
+  body[data-theme="night"] {
+    --bg: #101315; --paper: #16191b; --fg: #c8c5bc; --fg-soft: #8b8d88;
+    --line: #2b3135; --accent: #83b0a6; --seal: #b4614f;
+  }
+  body {
+    margin: 0; padding: 34px 16px 56px; min-height: 100vh;
     font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
     background: var(--bg); color: var(--fg);
     display: flex; flex-direction: column; align-items: center;
+    transition: background .3s ease, color .3s ease;
   }
-  body[data-theme="night"] {
-    --bg: #101315; --paper: #15181a; --fg: #c8c5bc; --fg-soft: #8b8d88;
-    --line: #2b3135; --accent: #83b0a6;
-  }
-  h1 { font-size: 25px; letter-spacing: 5px; margin: 0 0 6px; font-weight: 600; }
-  .sub { font-size: 13px; color: var(--fg-soft); letter-spacing: 2px; margin-bottom: 20px; font-family: sans-serif; }
+  h1 { font-size: 27px; letter-spacing: 7px; margin: 0 0 8px; font-weight: 600; }
+  .sub { font-size: 13px; color: var(--fg-soft); letter-spacing: 2px; margin-bottom: 26px; font-family: sans-serif; }
 
   /* 阅读器：与真机同样的层级（viewport > page + 墨层） */
   .reader {
-    position: relative; width: 360px; max-width: 92vw; height: 520px;
-    border-radius: 6px; overflow: hidden; background: var(--paper);
-    box-shadow: 0 18px 48px rgba(40,30,20,.28), 0 0 0 1px var(--line);
+    position: relative; width: 380px; max-width: 92vw; height: 540px;
+    border-radius: 4px; overflow: hidden; background: var(--paper);
+    box-shadow: 0 22px 56px rgba(40,30,20,.26), 0 0 0 1px var(--line);
   }
   .paper-grain { position:absolute; inset:0; pointer-events:none; z-index:1; mix-blend-mode:multiply;
     background-image:
@@ -35,36 +38,47 @@
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
     background-size: 100% 100%, 100% 100%, 300px 300px; }
   .page-viewport { position:absolute; inset:0; overflow:hidden; }
-  .page { position:absolute; inset:0; padding: 46px 34px; color:var(--fg); z-index:2; }
-  .page h2 { font-size:23px; letter-spacing:3px; margin:0 0 22px; font-weight:600;
+  .page { position:absolute; inset:0; padding: 52px 38px; color:var(--fg); z-index:2; }
+  .page h2 { font-size:24px; letter-spacing:4px; margin:0 0 26px; font-weight:600;
     border-bottom:2px solid color-mix(in srgb, var(--accent) 45%, transparent);
     padding-bottom:.2em; display:inline-block; }
-  .page p { font-size:16px; line-height:2.25; letter-spacing:.6px; margin:0 0 1em; text-indent:2em; }
-  .seal { position:absolute; right:28px; bottom:26px; width:38px; height:38px;
-    border:2px solid #9d2b1f; color:#9d2b1f; border-radius:5px;
+  .page p { font-size:16px; line-height:2.3; letter-spacing:.6px; margin:0 0 1em; text-indent:2em; }
+  .seal { position:absolute; right:30px; bottom:28px; width:38px; height:38px;
+    border:2px solid var(--seal); color:var(--seal); border-radius:5px;
     display:flex; align-items:center; justify-content:center; font-size:13px;
-    font-weight:600; transform:rotate(-4deg); opacity:.8; }
+    font-weight:600; transform:rotate(-4deg); opacity:.82; }
 
-  .toolbar { margin-top:20px; display:flex; gap:9px; flex-wrap:wrap; justify-content:center; }
+  .toolbar { margin-top:22px; display:flex; gap:9px; flex-wrap:wrap; justify-content:center; }
   button { font-family:inherit; font-size:14px; letter-spacing:1px; padding:10px 16px;
     border:1px solid var(--line); border-radius:8px; background:var(--paper);
-    color:var(--fg); cursor:pointer; min-height:42px; }
+    color:var(--fg); cursor:pointer; min-height:42px; transition:border-color .2s, color .2s; }
   button.primary { background:#252b2e; color:#f6f2e8; border-color:#252b2e; }
   button:active { transform:scale(.97); }
   button.on { border-color:var(--accent); color:var(--accent); }
-  .status { margin-top:12px; font:12px/1.7 sans-serif; color:var(--fg-soft); text-align:center; min-height:20px; }
-  .legend { margin-top:26px; max-width:620px; font:13px/1.9 sans-serif; color:var(--fg-soft); }
-  .legend h3 { font-size:14px; color:var(--fg); letter-spacing:2px; margin:0 0 8px; font-family:inherit; }
+  .status { margin-top:14px; font:12px/1.7 sans-serif; color:var(--fg-soft); text-align:center; min-height:20px; }
+
+  /* 设计说明：把「一笔」摊开给人看 */
+  .spec { margin-top:38px; width:min(760px, 100%); }
+  .spec h3 { font-size:15px; letter-spacing:3px; margin:0 0 4px; font-weight:600; }
+  .spec .hint { font:12px/1.8 sans-serif; color:var(--fg-soft); margin:0 0 16px; }
+  .stroke-card { position:relative; height:172px; border:1px solid var(--line); border-radius:6px;
+    background:var(--paper); overflow:hidden; }
+  .stroke-card .ink-brush-wrap { position:absolute; inset:0; clip-path:none; }
+  .stroke-card svg { width:100%; height:100%; }
+  .marks { display:flex; justify-content:space-between; padding:8px 4px 0;
+    font:11px/1.6 sans-serif; color:var(--fg-soft); letter-spacing:1px; }
+  .legend { margin-top:30px; width:min(760px, 100%); font:13px/1.95 sans-serif; color:var(--fg-soft); }
+  .legend h3 { font-size:14px; color:var(--fg); letter-spacing:3px; margin:0 0 10px; font-family:inherit; }
   .legend table { width:100%; border-collapse:collapse; }
-  .legend td { padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  .legend td:first-child { width:88px; color:var(--fg); }
+  .legend td { padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .legend td:first-child { width:96px; color:var(--fg); white-space:nowrap; }
   .err { margin-top:14px; padding:10px 14px; border-radius:8px; background:#7d2f26; color:#fff;
     font:13px/1.7 sans-serif; max-width:620px; display:none; }
 </style>
 </head>
 <body data-theme="ink">
   <h1>水杉 · 水墨翻页</h1>
-  <div class="sub">一笔过纸 · 墨渗字显　|　与 App 共用同一份 inkflip.js</div>
+  <div class="sub">一笔扫过 · 墨留纸上 · 字随笔生　|　与 App 共用同一份 inkflip.js</div>
 
   <div class="reader" id="reader">
     <div class="paper-grain"></div>
@@ -84,22 +98,31 @@
     <button id="night">夜览</button>
     <button id="legacy">对比旧版</button>
   </div>
-  <div class="status" id="status">点「下一页 ›」落笔；切「对比旧版」可看原来的 1.95 秒模糊淡入。</div>
+  <div class="status" id="status">点「下一页 ›」落笔；「对比旧版」可看原来的整屏黑幕 + 模糊淡入。</div>
   <div class="err" id="err"></div>
 
+  <div class="spec">
+    <h3>这一笔，摊开来看</h3>
+    <p class="hint">静态定格同一笔笔触（按下方卡片真实尺寸生成），可看清藏锋、铺毫、飞白与出锋。</p>
+    <div class="stroke-card" id="strokeCard"></div>
+    <div class="marks"><span>藏锋 · 顿</span><span>铺毫 · 提按</span><span>飞白 · 渐干</span><span>出锋 · 收</span></div>
+  </div>
+
   <div class="legend">
-    <h3>这一笔改了什么</h3>
+    <h3>设计取舍</h3>
     <table>
-      <tr><td>方向感</td><td>下一页左→右起笔、上一页右→左，笔锋 / 墨点 / 纸光全部镜像（旧版不分方向）。</td></tr>
-      <tr><td>不形变</td><td>SVG 按真实视口生成路径，不再把一张 340×470 的固定墨迹拉伸到全屏。</td></tr>
-      <tr><td>笔意</td><td>浓墨 / 淡墨 / 飞白三层笔触 + 宣纸渗墨毛边滤镜 + 错落墨点 + 纸纤维斑驳，每次落笔略有不同。</td></tr>
-      <tr><td>因果</td><td>墨色覆满纸面的一瞬才换页，随后墨从对侧退去、文字自纸中渗出（旧版墨迹与换页各跑各的）。</td></tr>
-      <tr><td>手感</td><td>约 700ms（旧版 1950ms），用 Web Animations API 精确编排，异常统一清理；尊重系统「减少动态效果」。</td></tr>
+      <tr><td>留白优先</td><td>纸永远是纸。墨只落在笔锋扫过的那一带，绝不用色块盖满整屏——中国画的第一原则是留白。</td></tr>
+      <tr><td>是真笔触</td><td>沿中轴采样生成变宽封闭轮廓：藏锋钝头 → 铺毫的稳定笔身 → 提笔出锋。不是等宽线条，更不是把一张固定 SVG 拉伸铺满。</td></tr>
+      <tr><td>墨分五色</td><td>水痕 / 湿墨 / 笔身 / 浓墨 / 笔心 / 骨线 六层同心叠墨，边缘清淡、笔心焦浓，纸色从墨里透出来。</td></tr>
+      <tr><td>飞白</td><td>用 mask 沿笔势挖出丝丝露白，越到收笔越密；露出的是宣纸本身，不是白色颜料。</td></tr>
+      <tr><td>生宣</td><td>侧锋几何抖动做出吸墨不匀的毛边，更宽更淡的同心轮廓就是水痕；全程不用 SVG 滤镜，避免 WebView 逐帧重算掉帧。</td></tr>
+      <tr><td>换页因果</td><td>旧字被水化开 → 笔锋过半时换页 → 新字由淡到浓自纸纤维渗出，靠「墨色浓淡」过渡，不靠遮盖偷换。</td></tr>
+      <tr><td>工程</td><td>Web Animations API 编排约 780ms（旧版 1950ms），绕开全局 animation:none；finally 统一清理墨层、旧页克隆与全部动画，渲染抛错也不留残影；尊重系统「减少动态效果」。</td></tr>
     </table>
   </div>
 
 <script type="module">
-import { playInkFlip } from './www/js/inkflip.js';
+import { playInkFlip, buildBrushSvg } from './www/js/inkflip.js';
 
 const pages = [
   { t: '山居秋暝', p: ['空山新雨后，天气晚来秋。明月松间照，清泉石上流。', '竹喧归浣女，莲动下渔舟。随意春芳歇，王孙自可留。', '一页之内，文字从容铺展，留白处自有呼吸。'] },
@@ -119,7 +142,16 @@ function render() {
 function setStatus(text) { status.textContent = text; }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// 旧版复刻：固定墨迹 + 600ms 淡出 + 1350ms 模糊淡入，用于直观对比。
+// 静态定格：与动画用同一个 buildBrushSvg，保证「说明」和「实际」完全一致。
+function renderStrokeSpec() {
+  const card = $('strokeCard');
+  const w = card.clientWidth || 720, h = card.clientHeight || 172;
+  card.innerHTML = '<div class="ink-brush-wrap">' + buildBrushSvg(w, h, true, 20261108) + '</div>';
+  const wrap = card.querySelector('.ink-brush-wrap');
+  wrap.style.clipPath = 'none';
+}
+
+// 旧版复刻：整屏深色遮罩 + 三条等宽波浪线 + 600ms 淡出 + 1350ms 模糊淡入。
 async function flipLegacy(dir) {
   const vp = $('viewport'), page = $('page');
   const ov = document.createElement('div');
@@ -153,7 +185,7 @@ async function flip(dir) {
   if (busy) return;
   busy = true;
   const t0 = performance.now();
-  setStatus((legacy ? '旧版' : '新版') + ' · ' + (dir === 'next' ? '下一页' : '上一页') + ' · 落笔中…');
+  setStatus((legacy ? '旧版' : '新版') + ' · ' + (dir === 'next' ? '下一页' : '上一页') + ' · 藏锋落笔…');
   try {
     if (legacy) {
       await flipLegacy(dir);
@@ -161,7 +193,7 @@ async function flip(dir) {
       await playInkFlip({
         viewport: $('viewport'), page: $('page'), dir,
         timeScale: slow ? 2.2 : 1,
-        mutate: () => { mutate(dir); setStatus('墨满换页 → 收笔，文字自纸中渗出…'); },
+        mutate: () => { mutate(dir); setStatus('笔锋过半 → 旧字化去，新字自纸中渗出…'); },
       });
     }
     setStatus(`${legacy ? '旧版' : '新版'} · ${dir === 'next' ? '下一页' : '上一页'} 完成 · ${Math.round(performance.now() - t0)}ms · 第 ${idx + 1}/${pages.length} 页`);
@@ -179,13 +211,15 @@ $('night').addEventListener('click', (e) => {
 });
 $('legacy').addEventListener('click', (e) => {
   legacy = !legacy; e.target.classList.toggle('on', legacy);
-  setStatus(legacy ? '已切到旧版：固定墨迹 + 1950ms 模糊淡入' : '已切回新版水墨翻页');
+  setStatus(legacy ? '已切到旧版：整屏黑幕 + 1950ms 模糊淡入' : '已切回新版毛笔水墨翻页');
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') flip('next');
   else if (e.key === 'ArrowLeft') flip('prev');
 });
 render();
+renderStrokeSpec();
+window.addEventListener('resize', renderStrokeSpec);
 </script>
 <script>
   // file:// 直接打开时 ESM 会被 CORS 阻断，给出明确指引而不是白屏。

@@ -1,88 +1,83 @@
-/* ===== 水杉 · 水墨翻页（ink-flip） =====
+/* ===== 水杉 · 水墨翻页（ink-brush） =====
    与 www/js/inkflip.js 配套，App 与 flip-preview.html 共用同一份样式。
-   动画本身由 Web Animations API 驱动，因此不受 style.css 里
-   全局 *{animation:none!important; transition:none!important} 影响；
-   这里只定义「墨长什么样」。删除本文件 + inkflip.js 即可整体回退。 */
+   动画由 Web Animations API 驱动，不受 style.css 里全局
+   *{animation:none!important; transition:none!important} 影响；这里只定义「墨长什么样」。
+
+   设计原则：留白优先。这里没有任何覆盖全屏的墨带 —— 墨只存在于笔锋扫过的那一带，
+   纸与文字始终可见。删除本文件 + inkflip.js 即可整体回退。 */
 
 .ink-flip {
-  /* 墨分五色：浓 / 淡 / 飞白 / 纸光，全部变量化以便夜览反相 */
-  --ink-deep: rgba(26, 22, 18, .94);
-  --ink-mid: rgba(48, 41, 33, .72);
-  --ink-pale: rgba(78, 68, 55, .14);
-  --ink-sheen: rgba(255, 252, 244, .30);
+  /* 墨分五色，由外到内六层同心叠墨：水痕 → 湿墨 → 笔身 → 浓墨 → 笔心 → 骨线。
+     每层都只是薄薄一层半透明墨，叠加后笔心约七成浓度、边缘几乎透明，
+     因此能看到纸色从墨里透出来 —— 这是「墨韵」，纯色实心块永远做不到。
+     刻意不用纯黑：松烟墨在宣纸上偏暖褐。 */
+  --ink-bleed: rgba(64, 53, 40, .08);
+  --ink-wet: rgba(48, 40, 30, .12);
+  --ink-body: rgba(28, 23, 17, .28);
+  --ink-deep: rgba(18, 15, 11, .38);
+  --ink-core: rgba(10, 8, 6, .48);
+  --ink-bone: rgba(6, 5, 4, .55);
+  --ink-splash: rgba(32, 26, 20, .50);
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
   overflow: hidden;
-  color: var(--ink-deep);
   contain: layout paint;
 }
-/* 夜览：深纸上用「淡墨 / 反白」表现同一笔，避免黑墨消失在黑底里 */
+
+/* 夜览：深纸上改用「淡墨 / 反白」表现同一笔，否则黑墨会消失在黑底里 */
 body[data-theme="night"] .ink-flip {
-  --ink-deep: rgba(214, 208, 196, .34);
-  --ink-mid: rgba(196, 190, 178, .22);
-  --ink-pale: rgba(180, 174, 162, .06);
-  --ink-sheen: rgba(255, 250, 235, .12);
+  --ink-bleed: rgba(182, 176, 162, .07);
+  --ink-wet: rgba(198, 192, 178, .11);
+  --ink-body: rgba(212, 206, 192, .14);
+  --ink-deep: rgba(220, 214, 200, .16);
+  --ink-core: rgba(228, 222, 208, .18);
+  --ink-bone: rgba(238, 232, 218, .22);
+  --ink-splash: rgba(216, 210, 196, .32);
 }
 
-/* ① 墨带：一层自起笔侧洇开的墨色，换页发生在它覆满纸面的瞬间 */
-.ink-flip .ink-wash {
+/* 旧页「墨化」层：随笔锋推进由浓到淡、由清到化地退去。
+   用 .ink-flip > 提高特异性，压过主题里 .page 的 z-index。 */
+.ink-flip > .ink-old-page {
   position: absolute;
   inset: 0;
-  transform: scaleX(0);
-  transform-origin: left center;
-  will-change: transform, opacity;
-  background: linear-gradient(90deg,
-    var(--ink-deep) 0%, var(--ink-deep) 86%,
-    var(--ink-mid) 95%, var(--ink-pale) 100%);
-}
-.ink-flip.ink-prev .ink-wash {
-  transform-origin: right center;
-  background: linear-gradient(270deg,
-    var(--ink-deep) 0%, var(--ink-deep) 86%,
-    var(--ink-mid) 95%, var(--ink-pale) 100%);
-}
-/* 宣纸纤维：叠一层极淡噪点，让墨色不是死板的纯色块，而是有吸墨不匀的斑驳 */
-.ink-flip .ink-wash::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: .17;
-  mix-blend-mode: screen;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
-  background-size: 220px 220px;
+  z-index: 1;
+  pointer-events: none;
+  transform-origin: center center;
 }
 
-/* ② 笔锋：三层浓淡墨线 + 错落墨点，由 JS 按真实视口生成路径并做描边动画 */
-.ink-flip .ink-brush {
+/* 笔锋层：clip-path 揭示，前端细如笔尖，因此不会出现直线硬边 */
+.ink-brush-wrap {
   position: absolute;
   inset: 0;
+  z-index: 2;
+  clip-path: inset(0 100% 0 0%);
+  will-change: clip-path;
+}
+.ink-prev .ink-brush-wrap { clip-path: inset(0 0% 0 100%); }
+
+.ink-brush {
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
 }
-.ink-flip .ink-brush-line { fill: none; stroke: currentColor; }
-.ink-flip .ink-dot { transform-box: fill-box; transform-origin: center; }
 
-/* ③ 收笔时掠过纸面的一抹微光，像墨干后纸的呼吸 */
-.ink-flip .ink-sheen {
-  position: absolute;
-  top: -25%;
-  bottom: -25%;
-  left: 0;
-  width: 62%;
-  opacity: 0;
-  transform: translateX(-140%);
-  will-change: transform, opacity;
-  background: linear-gradient(100deg,
-    transparent 0%, var(--ink-sheen) 48%, transparent 100%);
-}
-.ink-flip.ink-prev .ink-sheen {
-  left: auto;
-  right: 0;
-  background: linear-gradient(260deg,
-    transparent 0%, var(--ink-sheen) 48%, transparent 100%);
-}
+/* 六层墨色由淡到浓同心叠加，贴合弯曲的中轴，不会像线性渐变那样在转折处错位 */
+.ink-bleed { fill: var(--ink-bleed); }
+.ink-wet { fill: var(--ink-wet); }
+.ink-body { fill: var(--ink-body); }
+.ink-deep { fill: var(--ink-deep); }
+.ink-core { fill: var(--ink-core); }
+.ink-bone { fill: var(--ink-bone); }
+.ink-splash { fill: var(--ink-splash); }
+
+/* 起笔藏锋：一点焦墨 + 外围淡晕 */
+.ink-seed { transform-box: fill-box; transform-origin: center; }
+.ink-seed-halo { fill: var(--ink-wet); }
+.ink-seed-core { fill: var(--ink-core); }
 
 /* 尊重系统「减少动态效果」：JS 会直接跳过动画，这里再兜一层 */
 @media (prefers-reduced-motion: reduce) {
