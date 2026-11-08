@@ -1,7 +1,8 @@
 // 水杉阅读 —— Service Worker（离线缓存应用外壳）
 // 缓存版本号：每次改动 ASSETS 列表里的任意文件（尤其 js/app.js 等自身脚本）都必须 +1，
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
-const CACHE = 'inkreader-v10';
+const CACHE = 'inkreader-v11';
+const PREV_CACHE = 'inkreader-v10';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -12,13 +13,14 @@ const VENDOR = [
   'js/vendor/mediapipe/face_landmarker.task',
 ];
 // 完整模块图：漏掉任何一个静态 import 的目标，PWA 离线首启都会因模块图加载失败而白屏。
-// 之前漏了 ai.js / llm.js / importer-worker.js，这里一并补齐。
+// v1.1.18 新增 Plus 层：css/plus.css、js/plus.js、js/plus-core.js（后者被 importers.js 静态 import）。
 const ASSETS = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/style.css',
   'css/pro.css',
+  'css/plus.css',
   'css/ink-flip.css',
   'js/app.js',
   'js/inkflip.js',
@@ -33,26 +35,77 @@ const ASSETS = [
   'js/turn.js',
   'js/gaze.js',
   'js/pro.js',
+  'js/plus.js',
+  'js/plus-core.js',
   'js/importer-worker.js',
   'js/vendor/fflate.js',
   'js/vendor/pdf.min.js',
   'js/vendor/pdf.worker.min.js',
 ];
 
+// 相对上一版内容完全没变的文件：升级时直接从旧缓存复制，不产生任何网络/磁盘重复下载。
+// 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
+const REUSE = [
+  'manifest.webmanifest',
+  'css/style.css',
+  'css/pro.css',
+  'css/ink-flip.css',
+  'js/inkflip.js',
+  'js/store.js',
+  'js/paginate.js',
+  'js/pdfview.js',
+  'js/translate.js',
+  'js/mobidec.js',
+  'js/llm.js',
+  'js/ai.js',
+  'js/gaze.js',
+  'js/pro.js',
+  'js/importer-worker.js',
+  'js/vendor/fflate.js',
+  'js/vendor/pdf.min.js',
+  'js/vendor/pdf.worker.min.js',
+].concat(VENDOR);
+
+function reqOf(asset) {
+  return new Request(new URL(asset, self.registration.scope), { cache: 'reload' });
+}
+async function copyFromPrev(cache, asset) {
+  try {
+    // 直接 caches.open 会在「跨版本升级 / 首次安装」时凭空建一个空缓存，先判断存在性
+    if (!await caches.has(PREV_CACHE)) return false;
+    const old = await caches.open(PREV_CACHE);
+    const url = new URL(asset, self.registration.scope);
+    const hit = await old.match(url.href) || await old.match(asset);
+    if (!hit) return false;
+    await cache.put(new Request(url), hit.clone());
+    return true;
+  } catch (e) { return false; }
+}
+
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE)
-      // 逐项 add：任一可选资源（如未随包分发的视线模型）404 不会让整个安装卡在 waiting。
-      .then((c) => Promise.all(ASSETS.map((a) => c.add(a).catch(() => {}))))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(ASSETS.map(async (a) => {
+      // 1) 未变更文件：直接复用旧缓存，零网络请求
+      if (REUSE.includes(a) && await copyFromPrev(cache, a)) return;
+      // 2) 变更文件：取新版本
+      try {
+        const req = reqOf(a);
+        const res = await fetch(req);
+        if (res && res.ok) { await cache.put(req, res.clone()); return; }
+      } catch (err) {}
+      // 3) 离线 / 单个资源 404：回填旧版本，绝不让新缓存留下空洞
+      await copyFromPrev(cache, a);
+    }));
+    await self.skipWaiting();
+  })().catch(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      // 只清旧版本；install 已经把需要的内容搬进新缓存，删除不会再造成缺资源。
+      Promise.all(keys.filter((k) => k !== CACHE && k.startsWith('inkreader-v')).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim()).then(() =>
       // 通知页面「缓存版本变了」，由页面决定是否 reload：比 controllerchange +
       // sessionStorage 一次性标志可靠（APK 升级 / WebView 进程保留时不会被吞掉）。

@@ -18,6 +18,7 @@ import {
 import { createTurnController } from './turn.js';
 import { createGazeEngine } from './gaze.js';
 import { mountReaderPro } from './pro.js';
+import { mountReaderPlus } from './plus.js';
 import { playInkFlip } from './inkflip.js';
 
 // Capacitor 仅存在于原生外壳（Android WebView），由桥接层把插件挂在全局 window.Capacitor.Plugins 上。
@@ -165,6 +166,7 @@ const PDF_CACHE_CAP = 8;
 let turn = null;   // 统一翻页编排层
 let gaze = null;   // 视线信号源
 let pro = null;    // 阅读器交互增强层
+let plus = null;   // Plus 能力增强层（独立模块，删除挂载即可完整回退）
 
 const $ = (id) => document.getElementById(id);
 
@@ -318,7 +320,8 @@ function classifyTitle(title) {
 }
 
 async function renderShelf() {
-  const list = await listBooksMeta();
+  const metas = await listBooksMeta();
+  const list = plus ? plus.sortShelf(metas) : metas; // Plus：最近阅读置顶 / 系列分组
   const el = $('book-list');
   const empty = $('shelf-empty');
   const hint = $('drop-hint');
@@ -487,6 +490,7 @@ function shelfProgressPct(b) {
 function renderBookCard(b) {
   const card = document.createElement('div');
   card.className = 'book-card';
+  card.dataset.bookId = b.id; // Plus：书架进度环 / 最近阅读角标按 id 挂载
   const coverChar = (b.title || '?').trim().charAt(0) || '?';
   const cat = b.category || '其他';
   const cover = (typeof b.cover === 'string' && /^data:image\//i.test(b.cover)) ? b.cover : '';
@@ -557,7 +561,9 @@ function maybeAutoSummary(book) {
 // ---------- 阅读 ----------
 function computeMetrics() {
   const vp = $('page-viewport');
-  return { pageWidth: vp.clientWidth, pageHeight: vp.clientHeight };
+  // Plus：横屏双页时按「半栏宽度」分页，而不是先按整屏分页再 CSS 挤压。
+  return plus ? plus.pageMetrics(vp.clientWidth, vp.clientHeight)
+    : { pageWidth: vp.clientWidth, pageHeight: vp.clientHeight };
 }
 function settingsHash() {
   // 视口尺寸与主题也进 key：旋转 / 分屏 / 切主题后若沿用旧分页，会出现文字截断或大片留白。
@@ -566,6 +572,7 @@ function settingsHash() {
     settings.fontSize, settings.lineHeight, settings.margin, settings.justify,
     settings.letterSpacing, settings.paragraphSpacing, settings.firstLineIndent, settings.fontFamily,
     settings.theme, vp ? vp.clientWidth : 0, vp ? vp.clientHeight : 0,
+    plus ? plus.layoutKey() : '1up',
   ].join('|');
 }
 // 排版变化（字号 / 旋转 / 主题）后按「章内相对位置」保位，而不是生硬 clamp 旧页号。
@@ -613,6 +620,51 @@ async function restorePosition(pos) {
   await renderPage();
   saveProgress(currentBook.id, ci, pi, computeProgressPct());
   buildToc();
+}
+
+// ---------- Plus 层回调：ci/pi 的改动全部收口在这里，独立模块不直接碰阅读状态 ----------
+async function jumpToChapterOrQuote(ciTarget, quote) {
+  if (!currentBook) return;
+  if (pro) pro.remember(); // 跳转前留一个「返回原位置」
+  ci = Math.max(0, Math.min(ciTarget || 0, currentBook.chapters.length - 1));
+  pi = 0;
+  paginateCurrentChapter();
+  if (quote && plus) {
+    const found = plus.findPageByQuote(pages, quote);
+    if (found >= 0) pi = found;
+  }
+  await renderPage();
+  saveProgress(currentBook.id, ci, pi, computeProgressPct());
+  buildToc();
+}
+async function setBookCover(bookId, dataUrl) {
+  const b = await getBook(bookId);
+  if (!b) return;
+  b.cover = dataUrl;
+  await putBook(b);
+  if (currentBook && currentBook.id === bookId) currentBook.cover = dataUrl;
+  renderShelf();
+}
+function restoreBooksFromBackup(books) {
+  (books || []).forEach((b) => { if (b && b.id) putBook(b); });
+  settings = loadSettings();
+  applySettings();
+  renderShelf();
+}
+function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
+    else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+  } catch (e) {}
+  showToast('已复制');
+}
+function addExcerptFromText(text) {
+  lastSelText = text;   // 复用既有去重 / 落盘 / toast 逻辑，不另写一份
+  addFavoriteFromSelection();
 }
 function paginateCurrentChapter() {
   if (currentBook.source === 'pdf') {
@@ -667,22 +719,32 @@ async function renderPage() {
     }
     $('page').innerHTML = '<div class="pdfpage"><img src="' + url + '" alt=""></div>';
     $('chapter-title').textContent = currentBook.chapters[ci].title;
+    document.body.classList.remove('plus-two-up');
     updateProgress();
+    if (plus) plus.onPageRendered($('page'));
     return;
   }
   revokePageBlobs(); // 回收上一页创建的图片 blob URL
-  $('page').innerHTML = pages[pi] || '';
+  const two = !!(plus && plus.isTwoPage());
+  document.body.classList.toggle('plus-two-up', two);
+  // Plus 横屏双页：pages 本身已按半栏宽度分页，这里并排放相邻两页，不是把整页 CSS 压扁
+  $('page').innerHTML = two
+    ? '<div class="plus-spread"><div class="plus-col">' + (pages[pi] || '') + '</div>' +
+      '<div class="plus-col">' + (pages[pi + 1] || '') + '</div></div>'
+    : (pages[pi] || '');
   resolvePageImages();       // 把当页 <img data-img> 占位解析为真实图片（仅当页解码）
   enhanceFootnoteMarkers(); // 分页若丢了 <a>，把裸 [n] 补成可点击脚注标记
   applyHighlights();        // 还原本章已保存的正文标注（跨页/重进都在）
   $('chapter-title').textContent = currentBook.chapters[ci].title;
   updateProgress();
+  if (plus) plus.onPageRendered($('page')); // Plus：记录文字锚点
 }
 function updateProgress() {
   const total = pages.length;
   const pct = computeProgressPct();
   $('progress').textContent = `第${ci + 1}/${currentBook.chapters.length}章 · 第${pi + 1}/${total}页 · ${pct.toFixed(0)}%`;
   if (pro) pro.refresh(); // 常驻进度条（控制条隐藏时也看得见）
+  if (plus) plus.onProgress({ pct, ci, pi, pages: total, chapterCount: currentBook.chapters.length });
 }
 function regalFlash() {
   const r = $('reader');
@@ -693,10 +755,13 @@ async function afterPageTurn(chapterChanged) {
   await renderPage();
   saveProgress(currentBook.id, ci, pi, computeProgressPct());
   turnCounter++;
+  const src = (turn && turn.getState ? turn.getState().lastSource : '') || 'manual';
+  if (plus) plus.onTurn({ chapterChanged, source: src });
   const N = settings.regalRefresh;
-  if (N > 0 && ((N === 999 && chapterChanged) || (N !== 999 && turnCounter % N === 0))) {
-    regalFlash();
-  }
+  const doFlash = plus
+    ? plus.shouldRegal(chapterChanged, turnCounter, N, settings.theme, settings.pageFlip)
+    : (N > 0 && ((N === 999 && chapterChanged) || (N !== 999 && turnCounter % N === 0)));
+  if (doFlash) regalFlash();
 }
 // 翻书页动画总入口：按当前主题分发到专属翻页效果。
 // 全局 *{transition/animation:none!important}（墨水屏零动画原则）下，动画一律靠内联 !important 放行。
@@ -772,18 +837,20 @@ function wait(ms) {
 }
 async function nextPage() {
   hideTranslate();
-  if (pi < pages.length - 1) {
-    await flipPage('next', async () => { pi++; await afterPageTurn(false); });
+  const step = plus ? plus.pageStep() : 1; // Plus 横屏双页：一次推进两栏
+  if (pi + step < pages.length) {
+    await flipPage('next', async () => { pi += step; await afterPageTurn(false); });
   } else if (ci < currentBook.chapters.length - 1) {
     await flipPage('next', async () => { ci++; pi = 0; paginateCurrentChapter(); await afterPageTurn(true); });
   }
 }
 async function prevPage() {
   hideTranslate();
-  if (pi > 0) {
-    await flipPage('prev', async () => { pi--; await afterPageTurn(false); });
+  const step = plus ? plus.pageStep() : 1;
+  if (pi - step >= 0) {
+    await flipPage('prev', async () => { pi -= step; await afterPageTurn(false); });
   } else if (ci > 0) {
-    await flipPage('prev', async () => { ci--; paginateCurrentChapter(); pi = pages.length - 1; await afterPageTurn(true); });
+    await flipPage('prev', async () => { ci--; paginateCurrentChapter(); pi = Math.max(0, pages.length - step); await afterPageTurn(true); });
   }
 }
 
@@ -799,6 +866,9 @@ async function openBook(id, jump) {
     ci = Math.min(prog.ci || 0, book.chapters.length - 1);
     pi = prog.pi || 0;
   }
+  // Plus：按书恢复排版 + 取回上次阅读的文字锚点（跨设备/改字号比 ci/pi 稳）
+  const anchorCi = plus ? plus.onOpenBook(book, prog) : null;
+  if (anchorCi != null && !jump) ci = Math.max(0, Math.min(anchorCi, book.chapters.length - 1));
   if (jump) {
     ci = Math.max(0, Math.min(jump.ci || 0, book.chapters.length - 1));
     pi = Math.max(0, jump.pi || 0);
@@ -827,6 +897,7 @@ async function openBook(id, jump) {
   // 必须在阅读器可见后再分页：hidden 状态下 #page-viewport 高度为 0，会触发“每页 1 字”极端分支
   if (!currentPdfDoc) {
     paginateCurrentChapter();
+    if (plus && !jump) pi = plus.anchorPi(pages, pi); // 文字锚点重定位（找不到则沿用 ci/pi）
     pi = Math.max(0, Math.min(pi, pages.length - 1)); // 排版变化后页号可能越界
   }
   await renderPage();
@@ -841,6 +912,7 @@ async function openBook(id, jump) {
 }
 function exitReader() {
   if (pro) pro.onExit(); // 立即停自动翻页并释放摄像头
+  if (plus) plus.onExit(); // Plus：存会话、停 TTS、收起浮层
   revokePageBlobs(); // 退出阅读器：回收当前页图片 blob URL
   hideTranslate();
   stopReadingTimer();
@@ -1749,6 +1821,7 @@ function startReadingTimer() {
     if ($('reader').classList.contains('hidden')) return;
     if (document.querySelector('.panel.open')) return; // 面板打开（设置/AI/统计）时暂停
     if (dt <= 0 || dt > 60000) return; // 异常间隔忽略
+    if (plus && !plus.countThisTick(dt)) return; // Plus：有效阅读门槛，亮屏放置不计时
     const { justCheckedIn } = addReadingTime(currentBook.id, dt);
     if (justCheckedIn) showToast(`今日阅读已打卡 ✓（≥${settings.checkinGoalMin} 分钟）`);
   }, 1000);
@@ -2289,16 +2362,22 @@ function createProLayer() {
     onTurn: ({ source }) => { if (pro) pro.onTurn(source); },
   });
   gaze = createGazeEngine({
-    onSignal: () => { if (turn) turn.request('next', 'gaze'); },
-    onStatus: (st) => { if (pro) pro.setGazeStatus(st); },
+    onSignal: () => {
+      if (plus && !plus.acceptGazeSignal()) return; // Plus：视线意图判定，挡住误触
+      if (turn) turn.request('next', 'gaze');
+    },
+    onStatus: (st) => {
+      if (plus) plus.onGazeStatus(st);
+      if (pro) pro.setGazeStatus(st);
+    },
     getConfig: () => settings,
     onCalibration: (cal) => { settings.gazeCalibration = cal; saveSettings(settings); },
   });
   pro = mountReaderPro({
     turn, gaze,
     getSettings: () => settings,
-    setSetting: (k, v) => { settings[k] = v; applySettings(); saveSettings(settings); },
-    setLayoutSetting: (k, v) => { settings[k] = v; applySettings(); saveSettings(settings); scheduleRepaginate(); },
+    setSetting: (k, v) => { settings[k] = v; applySettings(); saveSettings(settings); if (plus) plus.saveBookLayout(k, v); },
+    setLayoutSetting: (k, v) => { settings[k] = v; applySettings(); saveSettings(settings); scheduleRepaginate(); if (plus) plus.saveBookLayout(k, v); },
     seekByPct,
     restorePosition,
     getProgress: () => (currentBook ? { pct: computeProgressPct(), ci, pi } : null),
@@ -2312,10 +2391,66 @@ function createProLayer() {
   };
 }
 
+// ---------- Plus 层装配 ----------
+// 与 Pro 层同样的「独立模块 + ctx 注入」范式：plus.js 不感知 ci/pi，只通过下面这组回调与主控通信。
+// 必须在 createProLayer 之后装配：turn.setBeforeTurn 需要把 Pro 的「翻页前预告」与
+// Plus 的「章末/书末自动停」组合起来，而不是互相覆盖。
+function createPlusLayer() {
+  plus = mountReaderPlus({
+    turn, gaze,
+    getBook: () => currentBook,
+    getPosition: () => (currentBook ? {
+      ci, pi, pages: pages.length, chapterCount: currentBook.chapters.length,
+      pct: computeProgressPct(), totalChars,
+    } : null),
+    getPages: () => pages,
+    getProgress,
+    getStats: () => loadStats(),
+    getMarks: () => {
+      const id = currentBook ? currentBook.id : '';
+      const h = loadHighlights(), f = loadFavorites(), bm = loadBookmarks();
+      return { highlights: h[id] || [], favorites: f[id] || [], bookmarks: bm[id] || [] };
+    },
+    getSettings: () => settings,
+    applyLayout: (ov) => { Object.assign(settings, ov || {}); applySettings(); saveSettings(settings); },
+    jumpToResult: (ciTarget, quote) => jumpToChapterOrQuote(ciTarget, quote),
+    jumpToChapter: (ciTarget) => jumpToChapterOrQuote(ciTarget, ''),
+    openBook: (id) => openBook(id),
+    requestTurn: (dir, source) => turn.request(dir, source),
+    stopAuto: () => { if (pro) pro.setMode('off'); else turn.stopAuto(); },
+    resumeAuto: () => {
+      if (pro) pro.setMode(settings.autoMode === 'off' ? 'timed' : settings.autoMode);
+      else turn.startAuto('timed', settings.autoIntervalMs, settings.autoConfirmMs);
+    },
+    syncPro: () => { if (pro) pro.syncPause(); },
+    onLayoutModeChange: () => {
+      if (currentBook && currentBook.source !== 'pdf' && !$('reader').classList.contains('hidden')) repaginateKeepAnchor();
+    },
+    renderShelf: () => renderShelf(),
+    showToast,
+    explainText: (t) => { lastSelText = t; doExplain(t); },
+    copyText: copyToClipboard,
+    addExcerpt: addExcerptFromText,
+    setCover: setBookCover,
+    getAllBooks,
+    restoreBooks: restoreBooksFromBackup,
+    swCacheName: 'inkreader-v11', // 与 sw.js CACHE 保持一致
+  });
+
+  const proBefore = turn.getBeforeTurn();
+  turn.setBeforeTurn(async (dir, source) => {
+    if (!plus.beforeAutoTurn(dir, source)) return false; // 章末/书末：停自动翻页并给出出口
+    return proBefore ? await proBefore(dir, source) : true; // 保留 Pro 的可取消预告
+  });
+
+  window.__INK_PLUS = plus; // 只读诊断 / 自动化回归入口
+}
+
 // ---------- 启动 ----------
 function init() {
   applySettings();
   createProLayer();
+  createPlusLayer();
   bindEvents();
   renderShelf();
   ensureBookMeta();

@@ -1,6 +1,7 @@
 // 内容导入：TXT（自动分段 + 章节检测）与 EPUB（fflate 解压，解析 OPF/NCX/NAV，内联图片，抽取目录）
 import { openPdf } from './pdfview.js';
 import { parseMobi } from './mobidec.js';
+import { sanitizeBookHtml } from './plus-core.js';
 export { parseMobi };
 
 function hash(str) {
@@ -286,23 +287,11 @@ function extractBody(html) {
 }
 // 书籍 HTML 是不可信输入：导入后会被注入活跃 DOM（分页测量容器 + 阅读页），
 // 残留事件属性 / javascript: / 外链资源就可能在 WebView 里执行脚本或静默外联。
-// 原来的 3 条正则挡不住「无引号属性」「单引号 javascript:」「svg onbegin」「srcdoc」。
-// 这里保持「字符串级」净化而不做 DOMParser 重新序列化：EPUB 的 SVG <image xlink:href>
-// 与脚注锚点依赖原始结构，重序列化有破坏图片与跨文件脚注的风险。
+// v1.1.18 起由 plus-core.js 的「正则预清洗 → DOMParser 白名单重建 → 结构守卫回退」统一处理：
+// 白名单覆盖没列全的元素与属性（animate / foreignObject / srcdoc 变体等），
+// SVG 子树用占位符原样保护，避免 HTML 解析器把 <image> 改名 <img> 而破坏 EPUB 插图与脚注。
 function sanitize(html) {
-  return String(html)
-    // 危险容器整体移除（成对 + 自闭合），保留 svg（封面与插图常用）
-    .replace(/<\s*(script|iframe|object|embed|form|style|template|noscript|frameset|frame)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|iframe|object|embed|form|meta|link|base|input|button|textarea|select|style|template|noscript)\b[^>]*\/?>/gi, '')
-    // 所有事件属性：双引号 / 单引号 / 无引号 全覆盖
-    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s(?:srcdoc|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    // javascript: / vbscript: 与非图片 data: URI（引号与无引号三种形态）
-    .replace(/((?:href|src|xlink:href|action|data)\s*=\s*)(["'])\s*(?:javascript|vbscript)\s*:[^"']*\2/gi, '$1"#"')
-    .replace(/((?:href|src|xlink:href|action|data)\s*=\s*)(["'])data:(?!image\/(?:png|jpe?g|gif|webp|svg\+xml|bmp|avif)\b)[^"']*\2/gi, '$1"#"')
-    .replace(/((?:href|src|xlink:href|action|data)\s*=\s*)(?:javascript|vbscript|data)\s*:[^\s>]+/gi, '$1"#"')
-    // 本地优先 / 零追踪：外链资源不自动加载、点击也不跳出应用
-    .replace(/((?:href|src|xlink:href)\s*=\s*)(["'])(?:https?:)?\/\/[^"']*\2/gi, '$1"#" data-ink-blocked="1"');
+  return sanitizeBookHtml(html);
 }
 function findTitle(html, tocMap, fullKey, idx) {
   if (tocMap.has(fullKey)) return tocMap.get(fullKey);

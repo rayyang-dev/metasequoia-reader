@@ -29,6 +29,7 @@ export function createTurnController(opts) {
   let pauseReason = '';
   let cooldown = cooldownMs;
   let lastAt = 0;
+  let lastSource = '';       // 最近一次受理的翻页来源（供 Plus 的意图/统计判定读取）
   let beforeTurn = null;        // async (dir, source) => boolean，false = 用户取消
   const history = [];           // 撤销栈：翻页前的位置快照
   const manualGaps = [];        // 最近手动翻页间隔，用于「跟随阅读节奏」自适应
@@ -45,7 +46,7 @@ export function createTurnController(opts) {
 
   function state(extra) {
     return Object.assign({
-      paused, pauseReason, cooldown,
+      paused, pauseReason, cooldown, lastSource,
       auto: { active: auto.active, mode: auto.mode, intervalMs: auto.intervalMs, confirmMs: auto.confirmMs },
       canUndo: history.length > 0,
     }, extra || {});
@@ -63,6 +64,7 @@ export function createTurnController(opts) {
     const now = Date.now();
     if (now - lastAt < cooldown) return Promise.resolve(false);
     lastAt = now;
+    lastSource = source;
 
     if (source === 'manual' || source === 'swipe' || source === 'volume' || source === 'key') {
       if (lastManualAt) {
@@ -184,6 +186,7 @@ export function createTurnController(opts) {
     request, undo, pause, resume, reset, destroy,
     startAuto, stopAuto, updateAuto,
     setBeforeTurn: (fn) => { beforeTurn = fn; },
+    getBeforeTurn: () => beforeTurn, // Plus：组合章末停与 Pro 的预告，避免互相覆盖
     setCooldown: (ms) => { cooldown = Math.max(0, Number(ms) || 0); broadcast(); },
     getState: () => state(),
     isPaused: () => paused,
