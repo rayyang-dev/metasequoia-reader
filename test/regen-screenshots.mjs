@@ -10,7 +10,7 @@ import puppeteer from 'puppeteer-core';
 const ROOT = fileURLToPath(new URL('../www', import.meta.url));
 const OUT = fileURLToPath(new URL('../docs/screenshots', import.meta.url));
 const PORT = 5188;
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

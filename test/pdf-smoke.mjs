@@ -27,7 +27,7 @@ const PDFS = [
   'C:/Users/杨睿/Desktop/088  冰雪王国  美国军舰珍妮特号的极地远征.pdf',
 ];
 
-const browser=await puppeteer.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:'new',args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
+const browser=await puppeteer.launch({executablePath:(process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),headless:'new',args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
 const page=await browser.newPage();
 await page.setViewport({width:412,height:892});
 const errors=[]; const dialogs=[];

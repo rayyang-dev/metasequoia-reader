@@ -223,25 +223,59 @@ export const DEFAULT_SETTINGS = {
   gazeDwellMs: 320,           // 视线在页底的最短驻留
   gazeCooldownMs: 1600,       // 两次回扫触发之间的冷却
   gazeSampleMs: 90,           // 取帧间隔（约 11fps，够用且省电）
+  gazePowerSave: false,       // 视线省电模式：降低取帧率与摄像头帧率，显著减少摄像头+CPU 耗电
   gazeEngine: 'auto',         // auto | system | sim；auto 会优先探测本地端侧模型
   gazeCalibration: null,      // { top, bottom } 个人视线量程
   brightness: 100,            // 阅读内亮度（纯 CSS 遮罩，不需要系统权限）
 };
 
+// 设置热路径优化：原 loadSettings() 每次都 JSON.parse 整份设置字符串（addReadingTime 每秒、
+// 亮度滑块每次 input 都会触发），saveSettings() 每次都同步 JSON.stringify + setItem。
+// 改为「内存缓存 + 写防抖」：读取走内存对象（零解析），写入延迟 300ms 合并，并在页面卸载/
+// 切后台时强制落盘，既不丢最近一次改动，又消除拖动滑块期间的反复序列化卡顿。
+let settingsCache = null;
+let settingsPersistTimer = null;
 export function loadSettings() {
-  return Object.assign({}, DEFAULT_SETTINGS, lsGet(K_SETTINGS, {}));
+  if (settingsCache) return settingsCache;
+  settingsCache = Object.assign({}, DEFAULT_SETTINGS, lsGet(K_SETTINGS, {}));
+  return settingsCache;
 }
 export function saveSettings(s) {
-  lsSet(K_SETTINGS, s);
+  settingsCache = s;
+  if (settingsPersistTimer) return; // 已排程，缓存已是最新值，无需重复建定时器
+  settingsPersistTimer = setTimeout(() => {
+    settingsPersistTimer = null;
+    try { localStorage.setItem(K_SETTINGS, JSON.stringify(settingsCache)); }
+    catch (e) { memoryKV.settings = settingsCache; }
+  }, 300);
+}
+// 立即落盘：页面卸载 / 切后台时调用，兜住 300ms 防抖窗口内可能丢失的最近一次设置改动。
+export function flushSettings() {
+  if (settingsPersistTimer) { clearTimeout(settingsPersistTimer); settingsPersistTimer = null; }
+  if (settingsCache) {
+    try { localStorage.setItem(K_SETTINGS, JSON.stringify(settingsCache)); }
+    catch (e) { memoryKV.settings = settingsCache; }
+  }
+}
+if (typeof window !== 'undefined') {
+  const flush = () => { try { flushSettings(); } catch (e) {} };
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 }
 
+// 进度热路径优化：原 saveProgress() 每次都 loadProgress()（解析整份进度 JSON）再整体写回，
+// 翻页越频繁序列化成本越高。改为内存缓存：读取走内存对象（零解析），写入仍即时落盘（不丢阅读位置）。
+let progressCache = null;
 export function loadProgress() {
-  return lsGet(K_PROGRESS, {});
+  if (progressCache) return progressCache;
+  progressCache = lsGet(K_PROGRESS, {});
+  return progressCache;
 }
 // pct 为阅读器算出的精确进度百分比，供书架角标直接展示；旧数据无此字段时由书架按章节估算
 export function saveProgress(bookId, ci, pi, pct) {
   const all = loadProgress();
   all[bookId] = { ci, pi, pct: typeof pct === 'number' && isFinite(pct) ? pct : null };
+  progressCache = all;
   lsSet(K_PROGRESS, all);
 }
 export function getProgress(bookId) {

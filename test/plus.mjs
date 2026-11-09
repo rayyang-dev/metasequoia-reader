@@ -66,7 +66,7 @@ check('plus.js：无原生桥时安全降级到 Blob / Web Speech',
   /nativeSave\(name, text\) \|\| \(download/.test(plusSrc) && /!!nativeTts\(\) \|\| webTts\(\)/.test(plusSrc));
 
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
   headless: 'new',
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 });

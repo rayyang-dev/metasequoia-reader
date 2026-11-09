@@ -25,7 +25,7 @@ await new Promise((r) => server.listen(0, r));
 const BASE = `http://localhost:${server.address().port}/`;
 
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
   headless: 'new',
   args: [
     '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',

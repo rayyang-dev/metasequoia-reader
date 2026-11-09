@@ -90,6 +90,9 @@ export function mountReaderPro(ctx) {
             <option value="sim">演示（模拟视线）</option>
           </select>
         </div></div>
+        <div class="pro-row"><span>视线省电</span><div class="pro-ctl" id="pro-gaze-power">
+          <button data-val="off">关闭</button><button data-val="on">开启</button>
+        </div></div>
         <div class="pro-row"><span>状态</span><div class="pro-ctl">
           <span id="pro-engine">引擎：未启动</span>
           <button id="pro-calibrate" disabled>校准</button>
@@ -293,6 +296,8 @@ export function mountReaderPro(ctx) {
     $('pro-sens-val').textContent = $('pro-sens').value;
     const ge = $('pro-gaze-engine');
     if (ge) ge.value = (st.gazeEngine === 'sim' ? 'sim' : 'auto');
+    const gp = $('pro-gaze-power');
+    if (gp) gp.querySelectorAll('button').forEach((b) => b.classList.toggle('active', (b.dataset.val === 'on') === !!st.gazePowerSave));
     setGazeStatus({ phase: gaze.getPhase(), engine: gaze.getEngine(), simulated: gaze.isSimulated() });
   }
 
@@ -371,6 +376,14 @@ export function mountReaderPro(ctx) {
     renderAuto();
   });
   $('pro-sens').addEventListener('input', (e) => { setSetting('gazeSensitivity', Number(e.target.value)); renderAuto(); });
+  document.querySelectorAll('#pro-gaze-power button').forEach((b) =>
+    b.addEventListener('click', () => {
+      setSetting('gazePowerSave', b.dataset.val === 'on');
+      renderAuto();
+      // 若正在视线模式，立即以新省电档位重新进入；否则仅记住设置，下次开启生效。
+      if (runtimeMode === 'gaze') { gaze.stop(); setMode('gaze'); }
+    })
+  );
   $('pro-gaze-engine').addEventListener('change', (e) => {
     setSetting('gazeEngine', e.target.value === 'sim' ? 'sim' : 'auto');
     // 若正在视线模式，立即以新引擎重新进入；否则仅记住设置，下次开启生效。
@@ -387,12 +400,14 @@ export function mountReaderPro(ctx) {
   // ---------- 进度条：点击 / 拖动跳转 ----------
   const bar = $('pro-bar');
   let seeking = false;
+  let barRect = null; // 拖动期间缓存 rect，避免每次 pointermove 都触发布局读取
   const pctAt = (e) => {
-    const r = bar.getBoundingClientRect();
+    const r = barRect || bar.getBoundingClientRect();
     return clamp(((e.clientX - r.left) / Math.max(1, r.width)) * 100, 0, 100);
   };
   bar.addEventListener('pointerdown', (e) => {
     seeking = true;
+    barRect = bar.getBoundingClientRect();
     try { bar.setPointerCapture(e.pointerId); } catch (err) {}
     $('pro-fill').style.width = pctAt(e) + '%';
     e.stopPropagation();
@@ -403,6 +418,7 @@ export function mountReaderPro(ctx) {
   bar.addEventListener('pointerup', async (e) => {
     if (!seeking) return;
     seeking = false;
+    barRect = null;
     const pct = pctAt(e);
     suppressClickUntil = Date.now() + 380;
     try { await seekByPct(pct); } catch (err) {}

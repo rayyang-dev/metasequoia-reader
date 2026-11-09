@@ -285,7 +285,7 @@ check('路线图文件含 200 个编号项与总览',
 
 /* ============ ③ 真实 App 集成 ============ */
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
   headless: 'new',
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 });

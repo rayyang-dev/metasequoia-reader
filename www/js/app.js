@@ -2436,6 +2436,35 @@ function createProLayer() {
     getSettings: () => settings,
     getPosition: () => (currentBook ? { ci, pi } : null),
   };
+
+  // ---------- 低电量自动省电守卫 ----------
+  // 视线翻页（前置摄像头 + 端侧 wasm 推理）是应用最大的可控耗电源。电量低于 15% 且未充电时，
+  // 自动关闭视线翻页并提示，避免用户在没察觉的情况下电量快速下降。特性探测，不支持则无副作用。
+  function setupBatteryGuard() {
+    if (typeof navigator === 'undefined' || !navigator.getBattery) return;
+    let warned = false;
+    let battery = null;
+    const check = () => {
+      if (!battery) return;
+      const low = !battery.charging && battery.level <= 0.15;
+      if (low && !warned) {
+        warned = true;
+        if (pro && typeof pro.setMode === 'function') { try { pro.setMode('off'); } catch (e) {} }
+        if (showToast) showToast('电量低于 15%：已自动关闭视线翻页以省电');
+      } else if (!low) {
+        warned = false;
+      }
+    };
+    try {
+      navigator.getBattery().then((b) => {
+        battery = b;
+        b.addEventListener('levelchange', check);
+        b.addEventListener('chargingchange', check);
+        check();
+      }).catch(() => {});
+    } catch (e) {}
+  }
+  setupBatteryGuard();
 }
 
 // ---------- Plus 层装配 ----------

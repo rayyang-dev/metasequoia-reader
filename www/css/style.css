@@ -251,6 +251,10 @@ body { background: var(--bg); color: var(--fg); }
   background: var(--bg);
   position: relative;
   box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 10px 22px -14px rgba(0,0,0,.35);
+  /* 书架书籍较多时，视口外卡片跳过渲染，滚动/绘制开销显著下降；
+     contain-intrinsic-size 给出占位高度，避免滚动条抖动。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
 }
 .book-card:active { background: var(--fg); color: var(--bg); }
 .book-card:active .bc-meta { color: var(--bg); }

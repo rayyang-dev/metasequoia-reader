@@ -267,6 +267,10 @@ export function createGazeEngine(opts) {
   let ctx = null;
   let rafId = null;
   let frameHandle = null;
+  let lastFrameAt = 0;          // 最近一次 onFrame 执行时刻；看门狗据此判断帧回调是否停摆
+  let useRafFallback = false;   // requestVideoFrameCallback 不可靠时切到 RAF 兜底
+  let watchdogId = null;        // 帧循环保活看门狗（兼容层翻页后 rvfc 静默停摆的兜底）
+  const FRAME_STALL_MS = 600;   // 超过此间隔无任何帧 = 视为停摆（兼容层翻页后常见）
   let running = false;
   let paused = false;
   let phase = 'off';           // off | starting | tracking | lost | bottom | sweep | paused | unavailable
@@ -294,14 +298,18 @@ export function createGazeEngine(opts) {
 
   function config() {
     const c = getConfig() || {};
+    const powerSave = !!c.gazePowerSave;
     return {
       sensitivity: CLAMP(Number(c.gazeSensitivity) || 4, 1, 5),
       dwellMs: Number(c.gazeDwellMs) || 320,
       // 演示（sim）模式用更短的冷却，让翻页节奏清晰可见；真实检测仍走配置值。
       cooldownMs: simInjected ? 1000 : (Number(c.gazeCooldownMs) || 1600),
-      sampleMs: Number(c.gazeSampleMs) || 90,
+      // 省电模式：把取帧间隔从约 11fps 降到约 7fps，摄像头+CPU 推理耗电明显下降，
+      // 对「页末驻留→回看页首」这种低频动作的识别几乎无影响。
+      sampleMs: powerSave ? 140 : (Number(c.gazeSampleMs) || 90),
       calibration: c.gazeCalibration || null,
       prefer: c.gazeEngine || 'auto',
+      powerSave,
     };
   }
 
@@ -329,6 +337,7 @@ export function createGazeEngine(opts) {
     lastEmitKey = '';
     lastFireAt = -Infinity;
     bottomSince = 0; bottomY = 0; lostSince = 0; smoothed = null;
+    useRafFallback = false; lastFrameAt = 0;
     phase = 'starting';
     emit('正在初始化端侧视线检测');
     const cfg = config();
@@ -358,8 +367,10 @@ export function createGazeEngine(opts) {
         }
         // 真实检测：带超时地申请摄像头，避免部分环境下权限弹窗缺失导致永久挂起；
         // 失败按错误类型精确分类，给出可执行的排查指引，而不是一句误导的「设备不支持」。
+        // 省电模式降低摄像头目标帧率（12→8fps），与更低的取帧间隔叠加进一步省电。
+        const fr = cfg.powerSave ? { ideal: 8, max: 10 } : { ideal: 12, max: 15 };
         stream = await getUserMediaTimed({
-          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } },
+          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 }, frameRate: fr },
           audio: false,
         }, 8000);
         video = makeVideo();
@@ -367,7 +378,9 @@ export function createGazeEngine(opts) {
         await video.play();
         canvas = document.createElement('canvas');
         canvas.width = 160; canvas.height = 120;
-        ctx = canvas.getContext('2d', { willReadFrequently: false });
+        // willReadFrequently=true：系统人脸检测路径会回读 canvas 像素，CPU 位图比 GPU 回读更快更省；
+        // 对 MediaPipe 路径（直接从 video 纹理推理）无副作用。
+        ctx = canvas.getContext('2d', { willReadFrequently: true });
       } else {
         // 显式 sim（演示）模式：自驱动注入「页底驻留 -> 回看页首」的合成回扫，
         // 让用户在任何无摄像头环境也能端到端看到 视线 -> 翻页 链路真实生效。
@@ -378,6 +391,7 @@ export function createGazeEngine(opts) {
       phase = 'tracking';
       emit(simInjected ? '演示模式 · 模拟视线（非真实检测）' : '视线追踪中 · 视频帧仅在本机内存处理');
       loop();
+      startWatchdog();
       return { ok: true, engine: engineName };
     } catch (e) {
       phase = 'unavailable';
@@ -406,17 +420,40 @@ export function createGazeEngine(opts) {
     }
     frameHandle = null;
   }
+  // 采样循环驱动：优先用 requestVideoFrameCallback（仅在有新视频帧时回调，更省电）；
+  // 但在部分兼容容器（如鸿蒙/卓易通运行 Android 包）中，翻页引发大面积 DOM 重排后，
+  // requestVideoFrameCallback 会静默停止派发——表现为「首次翻页正常、之后彻底失效」。
+  // 因此增加看门狗：若超过 FRAME_STALL_MS 没有收到任何一帧，立即切到 requestAnimationFrame
+  // 兜底，保证采样循环不会被单次掉帧永久杀死。
   function loop() {
     if (!running || paused) return;
-    if (video && video.requestVideoFrameCallback) {
+    if (!useRafFallback && video && video.requestVideoFrameCallback) {
       frameHandle = video.requestVideoFrameCallback(onFrame);
     } else {
       rafId = requestAnimationFrame(onFrame);
     }
   }
+  function startWatchdog() {
+    stopWatchdog();
+    watchdogId = setInterval(() => {
+      if (!running || paused) return;
+      const t = now();
+      if (t - lastFrameAt > FRAME_STALL_MS && !useRafFallback) {
+        // 帧回调疑似在兼容层停摆：切到 RAF 兜底，避免「首翻成功、后续失效」。
+        useRafFallback = true;
+        try { console.warn('[gaze] requestVideoFrameCallback 停摆，已切换到 RAF 兜底（常见于鸿蒙/卓易通兼容容器）'); } catch (e) {}
+        cancelFrame();
+        loop();
+      }
+    }, 250);
+  }
+  function stopWatchdog() {
+    if (watchdogId) { clearInterval(watchdogId); watchdogId = null; }
+  }
 
   function onFrame() {
     if (!running || paused) return;
+    lastFrameAt = now(); // 看门狗依据：本帧确实执行过，说明帧泵仍活着
     const cfg = config();
     const t = now();
     if (!paused && t - lastSampleAt >= cfg.sampleMs) {
@@ -551,6 +588,8 @@ export function createGazeEngine(opts) {
   function cleanup() {
     stopDemo();
     running = false;
+    stopWatchdog();
+    useRafFallback = false; lastFrameAt = 0;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     if (frameHandle && video && video.cancelVideoFrameCallback) {
       try { video.cancelVideoFrameCallback(frameHandle); } catch (e) {}

@@ -143,7 +143,7 @@ if (fs.existsSync(PDF)) cases.push({ id: 'PDF', input: '#file-pdf', file: PDF })
 if (fs.existsSync(MOBI)) cases.push({ id: 'MOBI', input: '#file-mobi', file: MOBI });
 
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
   headless: 'new',
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 });

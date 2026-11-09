@@ -150,7 +150,7 @@ check('目录：阅读页标题与目录项用同一个 label',
 
 /* ================= ③ 真实 App 集成 ================= */
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: (process.env.INK_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
   headless: 'new',
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 });
