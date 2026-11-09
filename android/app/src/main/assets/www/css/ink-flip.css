@@ -1,0 +1,85 @@
+/* ===== 红杉 · 水墨翻页（ink-brush） =====
+   与 www/js/inkflip.js 配套，App 与 flip-preview.html 共用同一份样式。
+   动画由 Web Animations API 驱动，不受 style.css 里全局
+   *{animation:none!important; transition:none!important} 影响；这里只定义「墨长什么样」。
+
+   设计原则：留白优先。这里没有任何覆盖全屏的墨带 —— 墨只存在于笔锋扫过的那一带，
+   纸与文字始终可见。删除本文件 + inkflip.js 即可整体回退。 */
+
+.ink-flip {
+  /* 墨分五色，由外到内六层同心叠墨：水痕 → 湿墨 → 笔身 → 浓墨 → 笔心 → 骨线。
+     每层都只是薄薄一层半透明墨，叠加后笔心约七成浓度、边缘几乎透明，
+     因此能看到纸色从墨里透出来 —— 这是「墨韵」，纯色实心块永远做不到。
+     刻意不用纯黑：松烟墨在宣纸上偏暖褐。 */
+  --ink-bleed: rgba(64, 53, 40, .08);
+  --ink-wet: rgba(48, 40, 30, .12);
+  --ink-body: rgba(28, 23, 17, .28);
+  --ink-deep: rgba(18, 15, 11, .38);
+  --ink-core: rgba(10, 8, 6, .48);
+  --ink-bone: rgba(6, 5, 4, .55);
+  --ink-splash: rgba(32, 26, 20, .50);
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+/* 夜览：深纸上改用「淡墨 / 反白」表现同一笔，否则黑墨会消失在黑底里 */
+body[data-theme="night"] .ink-flip {
+  --ink-bleed: rgba(182, 176, 162, .07);
+  --ink-wet: rgba(198, 192, 178, .11);
+  --ink-body: rgba(212, 206, 192, .14);
+  --ink-deep: rgba(220, 214, 200, .16);
+  --ink-core: rgba(228, 222, 208, .18);
+  --ink-bone: rgba(238, 232, 218, .22);
+  --ink-splash: rgba(216, 210, 196, .32);
+}
+
+/* 旧页「墨化」层：随笔锋推进由浓到淡、由清到化地退去。
+   用 .ink-flip > 提高特异性，压过主题里 .page 的 z-index。 */
+.ink-flip > .ink-old-page {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+/* 笔锋层：clip-path 揭示，前端细如笔尖，因此不会出现直线硬边 */
+.ink-brush-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  clip-path: inset(0 100% 0 0%);
+  will-change: clip-path;
+}
+.ink-prev .ink-brush-wrap { clip-path: inset(0 0% 0 100%); }
+
+.ink-brush {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 六层墨色由淡到浓同心叠加，贴合弯曲的中轴，不会像线性渐变那样在转折处错位 */
+.ink-bleed { fill: var(--ink-bleed); }
+.ink-wet { fill: var(--ink-wet); }
+.ink-body { fill: var(--ink-body); }
+.ink-deep { fill: var(--ink-deep); }
+.ink-core { fill: var(--ink-core); }
+.ink-bone { fill: var(--ink-bone); }
+.ink-splash { fill: var(--ink-splash); }
+
+/* 起笔藏锋：一点焦墨 + 外围淡晕 */
+.ink-seed { transform-box: fill-box; transform-origin: center; }
+.ink-seed-halo { fill: var(--ink-wet); }
+.ink-seed-core { fill: var(--ink-core); }
+
+/* 尊重系统「减少动态效果」：JS 会直接跳过动画，这里再兜一层 */
+@media (prefers-reduced-motion: reduce) {
+  .ink-flip { display: none !important; }
+}

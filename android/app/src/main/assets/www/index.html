@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#eceae2" />
+    <title>红杉阅读 · Sequoia</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/pro.css" />
+    <link rel="stylesheet" href="css/plus.css" />
+    <link rel="stylesheet" href="css/stats.css" />
+    <link rel="stylesheet" href="css/nexus.css" />
+    <link rel="stylesheet" href="css/aurora.css" />
+    <link rel="stylesheet" href="css/ink-flip.css" />
+  </head>
+  <body data-theme="ink" data-font="serif">
+    <!-- ============ 书架 ============ -->
+    <section id="shelf" class="screen view">
+      <header class="shelf-head">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="44" height="44" rx="11" fill="#C8362B"/>
+              <g fill="#fff">
+                <circle cx="24" cy="18" r="6.5"/>
+                <circle cx="18" cy="21.5" r="4.5"/>
+                <circle cx="30" cy="21.5" r="4.5"/>
+                <rect x="22" y="23" width="4" height="7"/>
+                <path d="M14 30 L24 34 L24 29 L14 26 Z"/>
+                <path d="M34 30 L24 34 L24 29 L34 26 Z"/>
+              </g>
+            </svg>
+          </span>
+          <div class="brand-text">
+            <h1>红杉阅读 <span>Sequoia</span></h1>
+            <p class="subtitle">本地优先 · 墨水屏优化 · 无广告</p>
+          </div>
+        </div>
+      </header>
+      <div class="shelf-actions">
+        <div class="shelf-actions-head" id="import-head" role="button" tabindex="0" aria-label="折叠或展开导入区">
+          <span class="section-label">导入书籍</span>
+          <span class="collapse-chevron" id="import-chevron" aria-hidden="true">▾</span>
+        </div>
+        <div class="import-body" id="import-body">
+          <div class="import-grid">
+            <button id="import-epub" class="btn">＋ EPUB</button>
+            <button id="import-txt" class="btn">＋ TXT</button>
+            <button id="import-pdf" class="btn">＋ PDF</button>
+            <button id="import-mobi" class="btn">＋ MOBI</button>
+          </div>
+          <button id="import-more" class="link-toggle" type="button">更多格式 ▾</button>
+          <div id="import-extra" class="import-grid import-extra hidden">
+            <button id="import-fb2" class="btn">＋ FB2</button>
+            <button id="import-html" class="btn">＋ HTML</button>
+            <button id="import-docx" class="btn">＋ DOCX</button>
+          </div>
+          <input type="file" id="file-txt" accept=".txt,text/plain" hidden />
+          <input type="file" id="file-epub" accept=".epub,application/epub+zip" hidden />
+          <input type="file" id="file-pdf" accept=".pdf,application/pdf" hidden />
+          <input type="file" id="file-mobi" accept=".mobi,.azw,application/x-mobipocket-ebook" hidden />
+          <input type="file" id="file-fb2" accept=".fb2" hidden />
+          <input type="file" id="file-html" accept=".html,.htm,text/html" hidden />
+          <input type="file" id="file-docx" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+        </div>
+      </div>
+      <div id="tag-filter" class="tag-filter hidden"></div>
+      <div id="book-list" class="book-list"></div>
+      <div id="shelf-empty" class="shelf-empty hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5.5C10.5 4.3 8.4 3.8 5.5 4 4 4.1 3 5 3 6.4V18c0 1.2 1 2 2.4 1.9 2.6-.2 4.6.2 6.6 1.4V6.8C12 6.2 12 5.8 12 5.5z"/>
+          <path d="M12 5.5C13.5 4.3 15.6 3.8 18.5 4c1.5.1 2.5 1 2.5 2.4V18c0 1.2-1 2-2.4 1.9-2.6-.2-4.6.2-6.6 1.4V6.8C12 6.2 12 5.8 12 5.5z"/>
+          <path d="M12 5.5V21.7"/>
+        </svg>
+        <h2>书架空空如也</h2>
+        <p>导入本地 TXT / EPUB / PDF / MOBI / FB2 / HTML / DOCX 开始阅读。<br/>支持拖拽，也支持手机/平板直接选文件。</p>
+      </div>
+      <div id="drop-hint" class="drop-hint">把 .txt / .epub / .pdf / .mobi / .azw / .fb2 / .html / .docx 拖到这里导入 · AZW3/KFX 请用 Calibre 转成 EPUB 再导入</div>
+    </section>
+
+    <!-- ============ 阅读统计（独立页面） ============ -->
+    <section id="view-stats" class="screen view hidden">
+      <header class="page-head">
+        <button class="icon-btn" data-nav="shelf">‹ 书架</button>
+        <div class="page-head-title">阅读统计</div>
+        <span class="page-head-spacer"></span>
+      </header>
+      <div class="stats-tabs ai-tabs">
+        <button class="stats-tab active" data-stats-tab="day">日</button>
+        <button class="stats-tab" data-stats-tab="week">周</button>
+        <button class="stats-tab" data-stats-tab="month">月</button>
+      </div>
+      <div class="stats-body">
+        <!-- v1.1.19：统计仪表盘由 js/stats.js 独立挂载（删除该文件 + css/stats.css 即可回退旧版） -->
+        <div id="stats-root"></div>
+      </div>
+    </section>
+
+    <!-- ============ 我的（标注 / 收藏语句汇总） ============ -->
+    <section id="view-mine" class="screen view hidden">
+      <header class="page-head">
+        <button class="icon-btn" data-nav="shelf" data-reset="1">‹ 书架</button>
+        <div class="page-head-title">我的标注与收藏</div>
+        <span class="page-head-spacer"></span>
+      </header>
+      <div class="mine-tabs ai-tabs">
+        <button class="mine-tab active" data-mine-tab="all">全部</button>
+        <button class="mine-tab" data-mine-tab="highlight">标注</button>
+        <button class="mine-tab" data-mine-tab="favorite">收藏</button>
+      </div>
+      <div id="mine-summary" class="mine-summary"></div>
+      <div id="mine-list" class="mine-body"></div>
+    </section>
+
+    <!-- ============ 个人设置（独立页面） ============ -->
+    <section id="view-settings" class="screen view hidden">
+      <header class="page-head">
+        <button class="icon-btn" data-nav="shelf" data-back="1">‹ 书架</button>
+        <div class="page-head-title">设置</div>
+        <span class="page-head-spacer"></span>
+      </header>
+      <div class="settings-body">
+        <div class="settings-group">
+          <div class="group-title">我的内容</div>
+          <div class="group-body">
+            <button class="btn btn-block" data-nav="mine">我的标注与收藏 →</button>
+            <button class="btn btn-block" data-aurora-open>红杉能力中心 · 200 项 →</button>
+            <div class="hint" style="margin:8px 0 0">按书籍汇总阅读时标注的段落与收藏的语句，可跳回原文。</div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="group-title">外观 · 皮肤</div>
+          <div class="group-body">
+            <div class="field">
+              <label>主题皮肤（点击即可切换）</label>
+              <div class="theme-swatches" id="theme-swatches"></div>
+            </div>
+            <div class="field">
+              <label>字体</label>
+              <div class="seg" id="seg-font">
+                <button data-val="serif">衬线</button>
+                <button data-val="sans">黑体</button>
+                <button data-val="mono">等宽</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">排版</div>
+          <div class="group-body">
+            <div class="field">
+              <label>字号 <span id="val-fontsize"></span></label>
+              <input type="range" id="set-fontsize" min="16" max="32" step="1" />
+            </div>
+            <div class="field">
+              <label>行距 <span id="val-lineheight"></span></label>
+              <input type="range" id="set-lineheight" min="1.2" max="2.4" step="0.05" />
+            </div>
+            <div class="field">
+              <label>边距 <span id="val-margin"></span></label>
+              <input type="range" id="set-margin" min="8" max="56" step="1" />
+            </div>
+            <div class="field">
+              <label>段距 <span id="val-paraspacing"></span></label>
+              <input type="range" id="set-paraspacing" min="0" max="1.6" step="0.1" />
+            </div>
+            <div class="field">
+              <label>字间距 <span id="val-letterspacing"></span></label>
+              <input type="range" id="set-letterspacing" min="-1" max="4" step="0.5" />
+            </div>
+            <div class="field row">
+              <label class="switch"><input type="checkbox" id="set-justify" /> 两端对齐</label>
+              <label class="switch"><input type="checkbox" id="set-indent" /> 首行缩进</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">屏幕与翻页</div>
+          <div class="group-body">
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="set-flip" /> 翻页动画（翻书效果）</label>
+            </div>
+            <div class="field">
+              <label>整屏刷新（墨水屏清残影）</label>
+              <div class="seg c5" id="seg-regal">
+                <button data-val="0">关闭</button>
+                <button data-val="1">每页</button>
+                <button data-val="3">每3页</button>
+                <button data-val="6">每6页</button>
+                <button data-val="12">每12页</button>
+                <button data-val="999">每章</button>
+              </div>
+            </div>
+          </div>
+          <p class="hint group-hint">开启「翻页动画」后，前后翻页会以翻书页的方式过渡（手机端更自然）；墨水屏设备若觉得残影明显，可关闭动画并保留「整屏刷新」清残影。</p>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">AI 引擎</div>
+          <div class="group-body">
+            <div class="field">
+              <label>AI 引擎（翻译 / 摘要 / 问答 / 标签 / 笔记 共用）</label>
+              <div class="seg c5" id="seg-translate-provider">
+                <button data-val="none">关闭</button>
+                <button data-val="mock">演示</button>
+                <button data-val="deepl">DeepL</button>
+                <button data-val="google">Google</button>
+                <button data-val="llm">AI 大模型</button>
+              </div>
+            </div>
+            <div class="field" id="field-tkey">
+              <label>API Key（仅存本机）</label>
+              <input type="password" id="set-tkey" placeholder="填入对应提供方的 Key" autocomplete="off" />
+            </div>
+            <div class="field" id="field-tbase">
+              <label>AI 接口地址 / 模型</label>
+              <input type="text" id="set-tbase" placeholder="https://api.openai.com/v1" style="margin-bottom:8px" autocomplete="off" />
+              <input type="text" id="set-tmodel" placeholder="模型名，如 gpt-4o-mini / deepseek-chat" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label>默认翻译方向</label>
+              <div class="seg" id="seg-tdir">
+                <button data-val="auto">自动</button>
+                <button data-val="zh2en">中→英</button>
+                <button data-val="en2zh">英→中</button>
+              </div>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="set-ai-auto" /> 导入后自动生成导读</label>
+            </div>
+          </div>
+          <p class="hint group-hint">AI 引擎默认关闭，不影响离线阅读。启用「AI 大模型」并填 Key 后，阅读页可选中文字「译 / 解释」、打开「AI 助手」生成全书或本章导读、书中问答、人物脉络笔记、智能书架标签、段落双语对照。API Key 仅存本机，本应用无服务器；支持任意 OpenAI 兼容接口（DeepSeek / 通义 / 本地 Ollama）。</p>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">阅读与书架</div>
+          <div class="group-body">
+            <div class="field">
+              <label>阅读打卡阈值 <span id="val-checkin"></span></label>
+              <input type="range" id="set-checkin" min="1" max="60" step="1" />
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="set-group-cat" /> 书架按分类分组</label>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="set-keep-screen" /> 阅读时保持屏幕常亮</label>
+            </div>
+          </div>
+          <p class="hint group-hint">当日累计阅读达到「打卡阈值」即自动打卡（在阅读页停留即计时，切到后台或打开面板时暂停）。开启「书架按分类分组」后，书架按分类分区块展示。开启「阅读时保持屏幕常亮」后，进入阅读器屏幕不会因无操作而锁屏，离开阅读器自动恢复。</p>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">书籍分类</div>
+          <div class="group-body">
+            <div class="field">
+              <label>分类管理（点 × 删除；删除后该分类下的书归入「其他」）</label>
+              <div id="cat-list" class="cat-list"></div>
+              <div class="cat-add-row">
+                <input type="text" id="cat-input" placeholder="新增分类名" maxlength="10" />
+                <button class="btn" id="cat-add" type="button">+ 新增</button>
+              </div>
+            </div>
+          </div>
+          <p class="hint group-hint">导入书籍时会按书名关键词自动归入对应分类（文学 / 历史 / 政治 / 小说等），未命中关键词的归入「其他」。可在书架顶部分类条点「+ 分类」快速新增，也可在此处增删；卡片上的下拉框可手动调整单本书的分类。</p>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-title">关于与法律</div>
+          <div class="group-body">
+            <div class="field">
+              <label>法律声明（点击查看）</label>
+              <div class="legal-links">
+                <button class="btn legal-link" data-nav="legal" data-legal="privacy">隐私政策</button>
+                <button class="btn legal-link" data-nav="legal" data-legal="terms">用户协议</button>
+                <button class="btn legal-link" data-nav="legal" data-legal="permissions">权限说明</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>版本</label>
+              <div class="hint" style="margin:0">红杉阅读 · 本地优先阅读器</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 法律声明（隐私政策 / 用户协议 / 权限说明） ============ -->
+    <section id="view-legal" class="screen view hidden">
+      <header class="page-head">
+        <button class="icon-btn" data-nav="settings" data-back="1">‹ 设置</button>
+        <div class="page-head-title" id="legal-title">隐私政策</div>
+        <span class="page-head-spacer"></span>
+      </header>
+      <div class="legal-tabs ai-tabs">
+        <button class="legal-tab active" data-legal="privacy">隐私政策</button>
+        <button class="legal-tab" data-legal="terms">用户协议</button>
+        <button class="legal-tab" data-legal="permissions">权限说明</button>
+      </div>
+      <div class="legal-body" id="legal-body"></div>
+    </section>
+
+    <!-- ============ 阅读器 ============ -->
+    <section id="reader" class="screen hidden">
+      <div id="topbar" class="topbar">
+        <button id="btn-back" class="icon-btn" aria-label="返回书架">← 书架</button>
+        <div id="chapter-title" class="chapter-title"></div>
+        <button id="btn-toc-top" class="icon-btn" aria-label="目录">目录</button>
+      </div>
+
+      <div id="page-viewport" class="page-viewport">
+        <div id="page" class="page"></div>
+      </div>
+
+      <div id="bottombar" class="bottombar">
+        <div class="bb-group bb-nav">
+          <button id="btn-prev" class="icon-btn" title="上一页" aria-label="上一页">‹</button>
+          <div id="progress" class="progress"></div>
+          <button id="btn-next" class="icon-btn" title="下一页" aria-label="下一页">›</button>
+        </div>
+        <span class="bar-sep"></span>
+        <div class="bb-group bb-tools">
+          <button id="btn-bookmark" class="icon-btn" aria-label="书签">书签</button>
+          <button id="btn-ai" class="icon-btn" aria-label="AI 助手">AI</button>
+          <button id="btn-toc" class="icon-btn" aria-label="目录">目录</button>
+        </div>
+      </div>
+
+      <!-- 侧滑面板 -->
+      <aside id="panel-toc" class="panel">
+        <div class="panel-head"><span>目录</span><button class="panel-close" data-close="panel-toc" aria-label="关闭">✕</button></div>
+        <div id="toc-list" class="toc-list"></div>
+      </aside>
+      <aside id="panel-bookmark" class="panel">
+        <div class="panel-head"><span>书签</span><button class="panel-close" data-close="panel-bookmark" aria-label="关闭">✕</button></div>
+        <button id="bm-add" class="btn" style="margin:12px 16px; width:calc(100% - 32px)">＋ 标记当前页</button>
+        <div id="bookmark-list" class="bookmark-list"></div>
+      </aside>
+      <aside id="panel-ai" class="panel">
+        <div class="panel-head"><span>AI 助手</span><button class="panel-close" data-close="panel-ai" aria-label="关闭">✕</button></div>
+        <div class="ai-tabs">
+          <button class="ai-tab active" data-ai-tab="guide">导读</button>
+          <button class="ai-tab" data-ai-tab="qa">问答</button>
+          <button class="ai-tab" data-ai-tab="notes">笔记</button>
+          <button class="ai-tab" data-ai-tab="bilingual">双语</button>
+        </div>
+        <div class="ai-body">
+          <div class="ai-pane" data-pane="guide">
+            <p class="ai-hint">基于本书内容生成「内容概要 + 阅读导读」。已生成的导读会缓存到本书，离线也能再看。</p>
+            <button id="ai-gen-guide" class="btn btn-block">生成全书导读</button>
+            <button id="ai-gen-guide-ch" class="btn btn-block subtle">生成本章导读</button>
+            <div id="ai-guide-out" class="ai-markdown"></div>
+          </div>
+          <div class="ai-pane hidden" data-pane="qa">
+            <div class="ai-qa-input">
+              <textarea id="ai-qa-question" placeholder="就本书提问，例如：主角的动机是什么？这一章讲了什么？"></textarea>
+              <button id="ai-qa-ask" class="btn btn-block">提问</button>
+            </div>
+            <div id="ai-qa-out" class="ai-qa-list"></div>
+          </div>
+          <div class="ai-pane hidden" data-pane="notes">
+            <p class="ai-hint">抽取人物关系、关键脉络与核心要点，生成结构化阅读笔记。</p>
+            <button id="ai-gen-notes" class="btn btn-block">生成阅读笔记</button>
+            <div id="ai-notes-out"></div>
+          </div>
+          <div class="ai-pane hidden" data-pane="bilingual">
+            <p class="ai-hint">把当前页拆成段落，逐段翻译成中文/英文对照（依赖上面的翻译方向设置）。</p>
+            <button id="ai-bilingual-gen" class="btn btn-block">本页双语对照</button>
+            <div id="ai-bilingual-out"></div>
+          </div>
+        </div>
+      </aside>
+
+      <div id="panel-mask" class="panel-mask"></div>
+
+      <!-- Regal 整屏清残影闪光 -->
+      <div id="refresh-flash" class="refresh-flash"></div>
+
+      <!-- 选中文字：工具条（译 / AI 解释 / 标注 / 收藏） -->
+      <div id="sel-bar" class="sel-bar hidden">
+        <button id="sel-translate">译</button>
+        <button id="sel-ai">AI 解释</button>
+        <button id="sel-highlight" class="sel-act">标注</button>
+        <button id="sel-favorite" class="sel-act">收藏</button>
+      </div>
+      <div id="translate-pop" class="hidden">
+        <div class="tp-row">
+          <span id="translate-dir" class="tp-dir"></span>
+          <button id="translate-swap" class="hidden">⇄ 反向</button>
+        </div>
+        <div id="translate-result"></div>
+        <div class="tp-actions">
+          <button id="translate-copy" class="hidden">复制</button>
+          <button id="translate-close">关闭</button>
+        </div>
+      </div>
+      <div id="ai-explain-pop" class="hidden">
+        <div class="tp-row">
+          <span class="tp-dir">AI 解释</span>
+          <button id="ai-explain-close">关闭</button>
+        </div>
+        <div id="ai-explain-text"></div>
+      </div>
+      <!-- 脚注弹层：点击正文中的脚注标记 [n] / 上标 ¹ 时展示注释文本 -->
+      <div id="footnote-pop" class="hidden">
+        <div class="tp-row">
+          <span class="tp-dir">脚注 <span id="footnote-ref"></span></span>
+          <button id="footnote-close">关闭</button>
+        </div>
+        <div id="footnote-text"></div>
+      </div>
+      <!-- 标注弹层：点击正文里的高亮标注时，可删除标注或顺手收藏这句 -->
+      <div id="hl-pop" class="hidden">
+        <div class="tp-row">
+          <span class="tp-dir">标注</span>
+          <button id="hl-close">关闭</button>
+        </div>
+        <div id="hl-text"></div>
+        <div class="tp-actions">
+          <button id="hl-fav">收藏这句</button>
+          <button id="hl-del">删除标注</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 底部导航栏 ============ -->
+    <nav id="tabbar">
+      <button class="tab active" data-view="shelf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H11v15H5.5A2.5 2.5 0 0 0 3 20.5V5.5zM21 5.5A2.5 2.5 0 0 0 18.5 3H13v15h5.5A2.5 2.5 0 0 1 21 20.5V5.5z"/></svg>
+        <span>书架</span>
+      </button>
+      <button class="tab" data-view="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 20v-6M12 20V9M16 20v-9"/></svg>
+        <span>统计</span>
+      </button>
+      <button class="tab" data-view="mine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-6-4-6 4v-17z"/></svg>
+        <span>我的</span>
+      </button>
+      <button class="tab" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M4.8 4.8l1.8 1.8M17.4 17.4l1.8 1.8M19.2 4.8l-1.8 1.8M6.6 17.4l-1.8 1.8"/></svg>
+        <span>设置</span>
+      </button>
+    </nav>
+
+    <div id="toast" class="hidden"></div>
+
+    <!-- 导入中遮罩：解析/写入后台进行时给出明确反馈（非阻塞） -->
+    <div id="busy" class="hidden" role="status" aria-live="polite">
+      <span id="busy-text">正在导入…</span>
+    </div>
+
+    <!-- EPUB 解压库（UMD 全局 fflate） -->
+    <script src="js/vendor/fflate.js"></script>
+
+    <!-- 诊断浮层：仅在出错或初始化超时时才显示，正常情况下不出现（排障期临时加，稳定后可删） -->
+    <script>
+      (function () {
+        // 诊断浮层仅调试时启用：访问地址加 ?debug（如 index.html?debug=1）才加载；
+        // 稳定后默认关闭，不污染正式体验（排障期临时加，见原注释“稳定后可删”）。
+        if (!/[?&]debug/.test(location.search)) return;
+        try {
+          var box = document.createElement('div');
+          box.id = 'diag';
+          box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;max-height:55%;overflow:auto;background:rgba(20,0,0,.93);color:#ffb4b4;font:12px/1.5 monospace;padding:8px 10px;border-bottom:2px solid #f33;white-space:pre-wrap;word-break:break-all;';
+          var open = false, envLogged = false;
+          function envInfo() {
+            return [
+              '— 环境 —',
+              'UA: ' + navigator.userAgent,
+              'SW: ' + ('serviceWorker' in navigator ? '支持' : '不支持'),
+              'Capacitor: ' + (window.Capacitor ? '有' : '无'),
+              'IndexedDB: ' + (window.indexedDB ? '有' : '无'),
+              'file input: ' + (document.createElement('input').type === 'file' ? '可创建' : '异常'),
+              'app.js init: ' + (window.__INK_INIT_DONE ? '已完成' : '未完成(模块可能未执行)')
+            ].join('\n');
+          }
+          function show() { if (!open) { document.body.appendChild(box); open = true; } }
+          function log(t) { show(); box.textContent += t + '\n'; }
+          function logEnvFirst() { if (!envLogged) { log(envInfo()); envLogged = true; } }
+          window.addEventListener('error', function (e) {
+            if (e && e.message && /favicon/i.test(e.message)) return;
+            logEnvFirst();
+            log('❌ ERROR ' + (e.message || e.error) + (e.filename ? (' @ ' + e.filename + ':' + e.lineno) : ''));
+          });
+          window.addEventListener('unhandledrejection', function (e) {
+            var r = e && e.reason; logEnvFirst(); log('❌ PROMISE ' + (r && r.message ? r.message : r));
+          });
+          setTimeout(function () {
+            if (!window.__INK_INIT_DONE) { logEnvFirst(); log('⚠️ 3s 后 app.js init 仍未完成，模块很可能未成功执行'); }
+          }, 3000);
+        } catch (e) {}
+      })();
+    </script>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

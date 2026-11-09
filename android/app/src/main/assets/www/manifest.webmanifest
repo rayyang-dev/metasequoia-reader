@@ -1,0 +1,19 @@
+{
+  "name": "红杉 Sequoia",
+  "short_name": "红杉",
+  "description": "本地优先、墨水屏优化的极简阅读器",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7ef",
+  "theme_color": "#faf7ef",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

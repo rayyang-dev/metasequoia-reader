@@ -1,0 +1,255 @@
+/* 红杉 Plus —— 阅读器能力增强层样式
+   与 pro.css 同样遵守「墨水屏零动画」：全文件不使用 transition / animation。
+   独立文件，删除即可随 plus.js 一起完整回退。 */
+
+:root {
+  --plus-accent: #8a6a3f;
+  --plus-accent-soft: rgba(138, 106, 63, .16);
+  --plus-panel-bg: #fdfcf9;
+  --plus-panel-fg: #26302f;
+  --plus-line: rgba(38, 48, 47, .12);
+  --plus-sub: rgba(38, 48, 47, .58);
+  --plus-sheet: rgba(255, 255, 255, .72);
+}
+body[data-theme="night"] {
+  --plus-accent: #c8a97b;
+  --plus-accent-soft: rgba(200, 169, 123, .18);
+  --plus-panel-bg: #1b1f21;
+  --plus-panel-fg: #d5d1c7;
+  --plus-line: rgba(213, 209, 199, .16);
+  --plus-sub: rgba(213, 209, 199, .60);
+  --plus-sheet: rgba(255, 255, 255, .06);
+}
+
+/* 隐藏的「面板已打开」标记：让 pro 层的 syncPause 能统一暂停自动翻页 */
+#plus-pause-marker { display: none !important; }
+
+/* 入口按钮：复用 #pro-chip 的避让逻辑，不新增遮挡控制条的浮层 */
+#plus-entry {
+  color: var(--plus-accent) !important;
+  font-size: 15px !important;
+  font-weight: 700;
+}
+
+/* ---------- 常驻：章节刻度 / 剩余时长 ---------- */
+#plus-ticks {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 10px;
+  z-index: 48; pointer-events: none; overflow: hidden;
+}
+.plus-tick {
+  position: absolute; top: 1px; width: 2px; height: 7px;
+  background: var(--plus-accent); opacity: .72; border-radius: 1px;
+}
+#plus-meta {
+  position: fixed; left: 10px; bottom: 12px; z-index: 46;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: var(--plus-sub); background: var(--plus-sheet);
+  border: 1px solid var(--plus-line); pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+#plus-root .hidden { display: none !important; }
+
+/* ---------- 浮条：会话恢复 / 章末停 / 划词查词 / 朗读 ---------- */
+#plus-session, #plus-endstop, #plus-selbar, #plus-ttsbar {
+  position: fixed; z-index: 58;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; border-radius: 999px;
+  background: var(--plus-panel-bg); color: var(--plus-panel-fg);
+  border: 1px solid var(--plus-line);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .14);
+  font-size: 12px; white-space: nowrap;
+}
+#plus-session { top: 54px; left: 50%; transform: translateX(-50%); max-width: 92vw; }
+#plus-endstop { bottom: 76px; left: 50%; transform: translateX(-50%); max-width: 94vw; }
+#plus-selbar { z-index: 62; padding: 4px 6px; }
+#plus-ttsbar { bottom: 14px; left: 50%; transform: translateX(-50%); }
+#plus-session span, #plus-endstop span, #plus-tts-state {
+  overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+}
+#plus-session button, #plus-endstop button, #plus-selbar button, #plus-ttsbar button {
+  border: 0; border-radius: 999px; cursor: pointer;
+  min-height: 30px; padding: 0 10px;
+  background: var(--plus-accent-soft); color: var(--plus-accent);
+  font: inherit; font-weight: 600;
+}
+#plus-session #plus-session-x, #plus-endstop #plus-endstop-x {
+  background: transparent; color: var(--plus-sub); padding: 0 6px; min-width: 26px;
+}
+
+/* ---------- 工具箱面板 ---------- */
+#plus-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 59;
+  max-height: min(78vh, 620px); overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--plus-panel-bg); color: var(--plus-panel-fg);
+  border-top: 1px solid var(--plus-line);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, .16);
+  font-size: 13px;
+}
+.plus-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px 8px; flex: 0 0 auto;
+}
+.plus-head strong { font-size: 15px; letter-spacing: .04em; font-weight: 600; }
+#plus-close {
+  border: 0; background: transparent; color: var(--plus-sub);
+  font-size: 17px; min-width: 34px; min-height: 34px; cursor: pointer;
+}
+#plus-tabs {
+  display: flex; gap: 2px; padding: 0 12px 8px; flex: 0 0 auto;
+  border-bottom: 1px solid var(--plus-line); overflow-x: auto;
+}
+#plus-tabs button {
+  flex: 1 0 auto; min-width: 54px; min-height: 36px;
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--plus-sub); font: inherit;
+}
+#plus-tabs button.active { background: var(--plus-accent-soft); color: var(--plus-accent); font-weight: 600; }
+.plus-pane { flex: 1 1 auto; overflow-y: auto; padding: 12px 16px 24px; }
+.plus-pane h4 {
+  margin: 14px 0 8px; font-size: 12px; font-weight: 600;
+  color: var(--plus-sub); letter-spacing: .08em;
+}
+.plus-pane h4:first-child { margin-top: 0; }
+
+.plus-search-row { display: flex; gap: 8px; }
+#plus-q {
+  flex: 1 1 auto; min-width: 0; min-height: 38px;
+  padding: 6px 11px; border-radius: 9px;
+  border: 1px solid var(--plus-line);
+  background: var(--plus-sheet); color: var(--plus-panel-fg); font: inherit;
+}
+.plus-primary {
+  border: 0; border-radius: 9px; padding: 0 14px; min-height: 38px;
+  background: var(--plus-accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+}
+.plus-list { margin-top: 10px; }
+.plus-empty, .plus-count { color: var(--plus-sub); font-size: 12px; margin: 6px 0 10px; }
+.plus-result, .plus-chapter {
+  display: flex; flex-direction: column; gap: 3px; width: 100%;
+  text-align: left; padding: 9px 10px; margin-bottom: 6px;
+  border: 1px solid var(--plus-line); border-radius: 9px;
+  background: var(--plus-sheet); color: inherit; font: inherit; cursor: pointer;
+}
+.plus-result-t, .plus-chapter-t { font-weight: 600; font-size: 13px; }
+.plus-result-s { color: var(--plus-sub); font-size: 12px; line-height: 1.5; }
+.plus-chapter { flex-direction: row; align-items: center; gap: 10px; }
+.plus-chapter.current { border-color: var(--plus-accent); background: var(--plus-accent-soft); }
+.plus-chapter-n { font-variant-numeric: tabular-nums; color: var(--plus-accent); font-size: 12px; }
+.plus-chapter-t { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plus-chapter-m { color: var(--plus-sub); font-size: 11px; white-space: nowrap; }
+
+.plus-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.plus-compact { margin: 8px 0 0; font-size: 12px; }
+.plus-ctl { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.plus-ctl button {
+  border: 1px solid var(--plus-line); border-radius: 8px;
+  background: var(--plus-sheet); color: inherit; font: inherit;
+  min-height: 34px; padding: 0 11px; cursor: pointer;
+}
+.plus-ctl input[type="range"] { width: 130px; accent-color: var(--plus-accent); }
+.plus-val { font-variant-numeric: tabular-nums; color: var(--plus-sub); min-width: 48px; text-align: right; }
+.plus-btn-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.plus-btn-grid button {
+  border: 1px solid var(--plus-line); border-radius: 9px;
+  background: var(--plus-sheet); color: inherit; font: inherit;
+  min-height: 40px; padding: 0 8px; cursor: pointer;
+}
+.plus-check { display: inline-flex; align-items: center; gap: 5px; color: var(--plus-sub); font-size: 12px; }
+.plus-check input { accent-color: var(--plus-accent); }
+.plus-block { display: flex; margin-top: 12px; }
+.plus-note { color: var(--plus-sub); font-size: 11.5px; line-height: 1.7; margin: 14px 0 0; }
+
+/* 阅读目标环 */
+.plus-goal { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+#plus-goal-ring {
+  --pct: 0%;
+  flex: 0 0 78px; width: 78px; height: 78px; border-radius: 50%;
+  background: conic-gradient(var(--plus-accent) var(--pct), var(--plus-accent-soft) 0);
+  display: flex; align-items: center; justify-content: center;
+}
+#plus-goal-ring span {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--plus-panel-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+#plus-goal-side { flex: 1 1 auto; min-width: 0; }
+.plus-goal-title { font-weight: 600; margin-bottom: 4px; }
+#plus-goal-detail { color: var(--plus-sub); font-size: 12px; }
+.plus-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.plus-stat {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px; border: 1px solid var(--plus-line); border-radius: 9px;
+  background: var(--plus-sheet);
+}
+.plus-stat span { color: var(--plus-sub); font-size: 11px; }
+.plus-stat b { font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* 设置开关 */
+.plus-switch {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--plus-line); cursor: pointer;
+}
+.plus-switch > span { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.plus-switch b { font-size: 13px; font-weight: 600; }
+.plus-switch small { color: var(--plus-sub); font-size: 11px; }
+.plus-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.plus-switch i {
+  flex: 0 0 40px; width: 40px; height: 23px; border-radius: 999px;
+  background: var(--plus-accent-soft); border: 1px solid var(--plus-line);
+  position: relative;
+}
+.plus-switch i::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 17px; height: 17px; border-radius: 50%; background: var(--plus-sub);
+}
+.plus-switch input:checked + i { background: var(--plus-accent); }
+.plus-switch input:checked + i::after { left: 19px; background: #fff; }
+
+/* ---------- 书架增强：进度环 / 最近阅读角标 ---------- */
+#book-list .book-card { position: relative; }
+.plus-ring {
+  position: absolute; right: 8px; top: 8px;
+  --pct: 0%;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: conic-gradient(var(--plus-accent) var(--pct), var(--plus-accent-soft) 0);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.plus-ring span {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--plus-panel-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-variant-numeric: tabular-nums; color: var(--plus-panel-fg);
+}
+.plus-recent-badge {
+  position: absolute; left: 8px; bottom: 8px;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--plus-accent); color: #fff;
+  font-size: 10px; pointer-events: none;
+}
+
+/* ---------- 横屏双页 ---------- */
+body.plus-two-up #page { padding-left: 12px !important; padding-right: 12px !important; }
+.plus-spread { display: flex; gap: 24px; height: 100%; align-items: stretch; }
+.plus-spread .plus-col {
+  flex: 1 1 0; min-width: 0; overflow: hidden;
+  border-right: 1px solid var(--plus-line);
+  padding-right: 12px;
+}
+.plus-spread .plus-col:last-child { border-right: 0; padding-right: 0; padding-left: 12px; }
+
+/* ---------- 自定义字体 ---------- */
+body.plus-custom-font { --r-font-family: "InkCustom", Georgia, "Songti SC", serif !important; }
+
+@media (max-width: 380px) {
+  .plus-btn-grid { grid-template-columns: 1fr; }
+  .plus-stat-grid { grid-template-columns: 1fr; }
+  .plus-ctl input[type="range"] { width: 96px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #plus-panel, #plus-selbar, #plus-session, #plus-endstop { scroll-behavior: auto; }
+}
