@@ -1,20 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 圣诞树：三层树冠 + 树干 + 顶星 + 挂球 -->
-    <path android:fillColor="#2EA84F" android:pathData="M54,30 L66,47 L42,47 Z"/>
-    <path android:fillColor="#2EA84F" android:pathData="M54,43 L72,63 L36,63 Z"/>
-    <path android:fillColor="#2EA84F" android:pathData="M54,57 L78,82 L30,82 Z"/>
-    <path android:fillColor="#7A4A21" android:pathData="M49,82 L59,82 L59,89 L49,89 Z"/>
-    <path android:fillColor="#FFD23F" android:pathData="M54,19 L55.53,22.90 L59.71,23.15 L56.47,25.80 L57.53,29.85 L54,27.6 L48.29,29.85 L52.47,25.80 L48.29,23.15 L52.47,22.90 Z"/>
-    <path android:fillColor="#FFD23F" android:pathData="M49.7,37 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
-    <path android:fillColor="#E2453B" android:pathData="M43.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
-    <path android:fillColor="#FFD23F" android:pathData="M59.7,56 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M51.7,68 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/>
-    <path android:fillColor="#FFD23F" android:pathData="M41,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
-    <path android:fillColor="#E2453B" android:pathData="M63,73 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
-    <path android:fillColor="#FFD23F" android:pathData="M52,78 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 Z"/>
+    <!-- 整图标不透明：红底 + 白树一次性画满，杜绝启动器套主题底色（teal 外框） -->
+    <path android:pathData="M0,0 h108 v108 h-108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108">
+                <item android:color="#D8412F" android:offset="0"/>
+                <item android:color="#A8281C" android:offset="1"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <group android:fillColor="#FFFFFF">
+        <path android:pathData="M40,40 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0 Z"/>
+        <path android:pathData="M30,48 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 Z"/>
+        <path android:pathData="M58,48 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 Z"/>
+        <path android:pathData="M50,52 h8 v16 h-8 Z"/>
+        <path android:pathData="M32,64 L54,72 L54,60 L32,56 Z"/>
+        <path android:pathData="M76,64 L54,72 L54,60 L76,56 Z"/>
+    </group>
 </vector>
