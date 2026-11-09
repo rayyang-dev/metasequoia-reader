@@ -103,28 +103,27 @@ body { background: var(--bg); color: var(--fg); }
   overflow-y: auto;
 }
 
-/* 品牌区 */
-.shelf-head { margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--hairline); }
-.brand { display: flex; align-items: center; gap: 15px; }
-.brand-mark {
-  flex: 0 0 auto;
-  width: 54px; height: 54px;
-  border-radius: 16px;
-  background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 66%, #000 34%));
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
-  font-size: 30px; font-weight: 700;
-  box-shadow: 0 2px 7px -1px color-mix(in srgb, var(--accent) 55%, transparent), inset 0 0 0 1.5px rgba(255,255,255,.22);
-}
+/* 品牌区 —— 纯文字刊头（已移除 .brand-mark 方图标，布局重排） */
+.shelf-head { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--hairline); }
+.brand { display: block; }
 .brand-text h1 {
-  font-size: 27px; margin: 0; letter-spacing: 0.5px; font-weight: 700;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 29px; margin: 0; letter-spacing: 1px; font-weight: 700; line-height: 1.25;
+}
+/* 红杉红短竖线：替代原方图标的刊头锚点（纯排版装饰，非图标） */
+.brand-text h1::before {
+  content: ""; flex: 0 0 auto;
+  width: 4px; height: 25px; border-radius: 2px;
+  background: #C8362B;
 }
 .brand-text h1 span {
-  font-family: Georgia, serif; font-weight: 400; font-size: 17px;
-  color: var(--fg-soft); margin-left: 5px; letter-spacing: 0;
+  font-family: Georgia, serif; font-weight: 400; font-size: 16px;
+  color: var(--fg-soft); margin-left: 0; letter-spacing: 0;
 }
-.subtitle { margin: 4px 0 0; color: var(--fg-soft); font-size: 13px; letter-spacing: 0.3px; }
+.subtitle {
+  margin: 7px 0 0 14px;
+  color: var(--fg-soft); font-size: 12.5px; letter-spacing: 0.4px;
+}
 
 /* 导入区分组 */
 .section-label {
@@ -1113,9 +1112,11 @@ mark.ink-hl:active { background: color-mix(in srgb, var(--accent) 40%, transpare
 
 /* ---------- 移动端 / 手机优化 ---------- */
 @media (max-width: 480px) {
-  .shelf-head { margin-bottom: 18px; }
-  .brand-text h1 { font-size: 21px; }
-  .subtitle { font-size: 12px; }
+  .shelf-head { margin-bottom: 16px; padding-bottom: 14px; }
+  .brand-text h1 { font-size: 24px; gap: 8px; }
+  .brand-text h1::before { width: 3px; height: 21px; }
+  .brand-text h1 span { font-size: 13px; }
+  .subtitle { margin-left: 11px; font-size: 12px; }
   .book-list { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
   .bc-cover { font-size: 32px; }
   .bc-title { font-size: 14px; }

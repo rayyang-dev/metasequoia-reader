@@ -3,30 +3,32 @@
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="100"
-    android:viewportHeight="100">
-    <!-- 整图标不透明：红底 + 白树白书（CONCEPT 01 林间书页原稿几何），杜绝启动器套主题底色 -->
-    <path android:pathData="M0,0 h100 v100 h-100 Z">
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 红底满格烤进前景层：既让自适应图标铺满图标格，又防止 launcher 主题化把背景层改成青色 -->
+    <path android:pathData="M0,0 h108 v108 h-108 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
                 android:startX="0"
                 android:startY="0"
-                android:endX="100"
-                android:endY="100">
+                android:endX="108"
+                android:endY="108">
                 <item android:color="#D8412F" android:offset="0"/>
                 <item android:color="#A8281C" android:offset="1"/>
             </gradient>
         </aapt:attr>
     </path>
-    <group android:fillColor="#FFFFFF">
-        <path android:pathData="M37,30 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0 Z"/>
-        <path android:pathData="M28,36 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0 Z"/>
-        <path android:pathData="M54,36 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0 Z"/>
-        <path android:pathData="M46.5,44 h7 v18 h-7 Z"/>
-    </group>
+    <!-- 白树：每个形状独立 path + 绝对圆弧(A)，不用 <group>/相对 arc(a)。
+         旧写法在部分 ROM 的 VectorDrawable 解析器上会整个 group 不渲染，只剩书页弧线。
+         图案全部收进 108 画布中心安全区（约 21~87），避免被 launcher 遮罩裁掉。 -->
+    <path android:fillColor="#FFFFFF" android:pathData="M42,42 A12,12 0 1,0 66,42 A12,12 0 1,0 42,42 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M34,48 A8,8 0 1,0 50,48 A8,8 0 1,0 34,48 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M58,48 A8,8 0 1,0 74,48 A8,8 0 1,0 58,48 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M50,54 h8 v16 h-8 Z"/>
+    <!-- 白色书页弧线 -->
     <path
-        android:pathData="M16,80 Q50,71 50,80 Q50,71 84,80"
+        android:pathData="M26,78 Q54,68 54,78 Q54,68 82,78"
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="5"

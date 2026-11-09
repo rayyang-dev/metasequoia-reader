@@ -1,8 +1,10 @@
 // 红杉阅读 —— Service Worker（离线缓存应用外壳）
 // 缓存版本号：每次改动 ASSETS 列表里的任意文件（尤其 js/app.js 等自身脚本）都必须 +1，
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
-const CACHE = 'inkreader-v14';
-const PREV_CACHE = 'inkreader-v13';
+// v15：书架头部布局重排（删除 .brand-mark 方图标）——index.html / css/style.css 均变更，
+// 必须 +1 且把 css/style.css 从 REUSE 摘出，否则 WebView 会继续喂回旧样式。
+const CACHE = 'inkreader-v15';
+const PREV_CACHE = 'inkreader-v14';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -55,7 +57,7 @@ const ASSETS = [
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',
-  'css/style.css',
+  // css/style.css 在 v15 已变更，升级时必须取新版本，不能从旧缓存复用
   'css/pro.css',
   'css/ink-flip.css',
   'js/inkflip.js',
