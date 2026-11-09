@@ -20,6 +20,10 @@ Desktop.ini
 # 图标生成本地工作目录（含 node_modules 与产物，非源码）
 icon-build/
 
+# 构建产物（APK/AAB 等，发布走 GitHub Releases，不进版本库）
+*.apk
+*.aab
+
 # HarmonyOS / DevEco 生成物（由 cap sync 再生，不需提交）
 harmony/entry/src/main/resources/rawfile/www/
 harmony/**/oh_modules/
