@@ -1,0 +1,34 @@
+/*
+ * 首版应用商店审核构建：隐藏 AI 助手与在线翻译入口。
+ *
+ * 生效条件：js/release-gate.js 中 AI_FEATURES_ENABLED = false 时，会给 <html> 加上
+ *           .ai-review-hide；把开关改回 true 后本文件所有规则自动失效。
+ *
+ * 设计要点：一律使用 display:none，不移除 DOM。app.js 中对这些元素的 getElementById /
+ *           addEventListener / setAttribute 全部照常执行，不会因节点缺失抛错，
+ *           因此不需要改动任何业务脚本，也不会破坏既有的冒烟测试断言。
+ *
+ * 注意：不能按 .ai-tabs 这类通用样式类隐藏——书架统计页、我的页、法律声明页都复用了它，
+ *       所以这里只按明确的 id 精确命中。
+ */
+
+.ai-review-hide #settings-group-ai,
+.ai-review-hide #btn-ai,
+.ai-review-hide #panel-ai,
+.ai-review-hide #sel-translate,
+.ai-review-hide #sel-ai,
+.ai-review-hide #translate-pop,
+.ai-review-hide #ai-explain-pop {
+  display: none !important;
+}
+
+/* 由 release-gate.js 动态挂在 #legal-body 顶部的送审版说明；用 currentColor 跟随主题 */
+.ai-review-hide .legal-review-notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.85;
+}

@@ -3,8 +3,10 @@
 // 否则 WebView 升级后会继续从旧缓存喂回旧文件，导致修好的 bug 在真机“看起来没修”。
 // v15：书架头部布局重排（删除 .brand-mark 方图标）——index.html / css/style.css 均变更，
 // 必须 +1 且把 css/style.css 从 REUSE 摘出，否则 WebView 会继续喂回旧样式。
-const CACHE = 'inkreader-v15';
-const PREV_CACHE = 'inkreader-v14';
+// v16：首版送审隐藏 AI / 在线翻译入口——index.html 变更，并新增
+// css/release-review.css、js/release-gate.js（新文件不能进 REUSE，必须从包内取新版）。
+const CACHE = 'inkreader-v16';
+const PREV_CACHE = 'inkreader-v15';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -51,9 +53,12 @@ const ASSETS = [
   'js/vendor/fflate.js',
   'js/vendor/pdf.min.js',
   'js/vendor/pdf.worker.min.js',
+  'js/release-gate.js',
+  'css/release-review.css',
 ];
 
 // 相对上一版内容完全没变的文件：升级时直接从旧缓存复制，不产生任何网络/磁盘重复下载。
+// 注意：v16 新增的 release-gate.js / release-review.css 以及变更过的 index.html 都不在此列。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',

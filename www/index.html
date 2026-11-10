@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#eceae2" />
     <title>红杉阅读 · Sequoia</title>
     <link rel="manifest" href="manifest.webmanifest" />
+    <script src="js/release-gate.js"></script>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/pro.css" />
     <link rel="stylesheet" href="css/plus.css" />
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="css/nexus.css" />
     <link rel="stylesheet" href="css/aurora.css" />
     <link rel="stylesheet" href="css/ink-flip.css" />
+    <link rel="stylesheet" href="css/release-review.css" />
   </head>
   <body data-theme="ink" data-font="serif">
     <!-- ============ 书架 ============ -->
@@ -185,7 +187,7 @@
           <p class="hint group-hint">开启「翻页动画」后，前后翻页会以翻书页的方式过渡（手机端更自然）；墨水屏设备若觉得残影明显，可关闭动画并保留「整屏刷新」清残影。</p>
         </div>
 
-        <div class="settings-group">
+        <div class="settings-group" id="settings-group-ai">
           <div class="group-title">AI 引擎</div>
           <div class="group-body">
             <div class="field">
