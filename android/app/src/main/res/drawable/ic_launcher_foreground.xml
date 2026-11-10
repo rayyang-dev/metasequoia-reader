@@ -5,32 +5,41 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 红底满格烤进前景层：既让自适应图标铺满图标格，又防止 launcher 主题化把背景层改成青色 -->
+    <!-- 「林间书页」CONCEPT 01（来源 sequoia-reading-icons.html）。
+         概念展示页里 .icon svg{width:64%;height:64%}，图案只占图标 64% 并居中；
+         之前版本把同一套 SVG 铺成 100%，导致真机上白树/书页比设计稿大一圈。
+         这里按 adaptive 可见区 18~90（72 单位，由 v1.4.4 真机截图反推）换算：
+             c = 18 + 72 * (0.18 + 0.0064 * svgCoord) = 30.96 + 0.4608 * svgCoord
+         红底仍满格烤进前景层：既让图标铺满图标格，又防止 launcher 主题化套底色。 -->
     <path android:pathData="M0,0 h108 v108 h-108 Z">
         <aapt:attr name="android:fillColor">
+            <!-- 145deg 渐变 + 概念稿顶部 14% 白色高光，色值按设计稿实测采样烤进色标 -->
             <gradient
                 android:type="linear"
-                android:startX="0"
-                android:startY="0"
-                android:endX="108"
-                android:endY="108">
-                <item android:color="#D8412F" android:offset="0"/>
-                <item android:color="#A8281C" android:offset="1"/>
+                android:startX="18"
+                android:startY="18"
+                android:endX="68"
+                android:endY="90">
+                <item android:color="#D75644" android:offset="0"/>
+                <item android:color="#C63629" android:offset="0.5"/>
+                <item android:color="#B12D1E" android:offset="1"/>
             </gradient>
         </aapt:attr>
     </path>
     <!-- 白树：每个形状独立 path + 绝对圆弧(A)，不用 <group>/相对 arc(a)。
          旧写法在部分 ROM 的 VectorDrawable 解析器上会整个 group 不渲染，只剩书页弧线。
-         图案全部收进 108 画布中心安全区（约 21~87），避免被 launcher 遮罩裁掉。 -->
-    <path android:fillColor="#FFFFFF" android:pathData="M42,42 A12,12 0 1,0 66,42 A12,12 0 1,0 42,42 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M34,48 A8,8 0 1,0 50,48 A8,8 0 1,0 34,48 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M58,48 A8,8 0 1,0 74,48 A8,8 0 1,0 58,48 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M50,54 h8 v16 h-8 Z"/>
-    <!-- 白色书页弧线 -->
+         坐标全部落在中心安全区（38~70 / 38~68），不会被遮罩裁切。 -->
+    <path android:fillColor="#FFFFFF" android:pathData="M48,44.8 A6,6 0 1,0 60,44.8 A6,6 0 1,0 48,44.8 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M43.8,47.5 A4.2,4.2 0 1,0 52.2,47.5 A4.2,4.2 0 1,0 43.8,47.5 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M55.8,47.5 A4.2,4.2 0 1,0 64.2,47.5 A4.2,4.2 0 1,0 55.8,47.5 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M52.4,49.5 h3.2 v10 h-3.2 Z"/>
+    <!-- 白色书页：概念稿 M16 80 Q50 71 50 80 Q50 71 84 80 的双段浅双峰。
+         strokeWidth = 5 * 0.4608 ≈ 2.3，两端圆帽。 -->
     <path
-        android:pathData="M26,78 Q54,68 54,78 Q54,68 82,78"
+        android:pathData="M38.3,67.8 Q54,63.7 54,67.8 Q54,63.7 69.7,67.8"
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"/>
+        android:strokeWidth="2.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
 </vector>
