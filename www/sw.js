@@ -8,8 +8,10 @@
 // v17：修复「红杉能力中心」面板与设置页文字重叠——css/aurora.css、js/aurora.js 均变更，
 // 两文件都不得进 REUSE；同时把 aurora 模块图（css/aurora.css、js/aurora.js、
 // js/aurora-core.js、js/aurora-registry.js）补进 ASSETS，离线首启不再漏资源。
-const CACHE = 'inkreader-v17';
-const PREV_CACHE = 'inkreader-v16';
+// v18：移除「红杉能力中心 · 200 项」清单 UI（index.html / app.js / aurora.js / aurora.css
+// 变更），并按代码核对同步 aurora-registry.js 里 69 项状态。变更文件一律不进 REUSE。
+const CACHE = 'inkreader-v18';
+const PREV_CACHE = 'inkreader-v17';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -70,6 +72,7 @@ const ASSETS = [
 // 注意：v16 新增的 release-gate.js / release-review.css、变更过的 index.html，
 // 以及 v17 变更过的 css/aurora.css、js/aurora.js 与新增的 aurora-core.js /
 // aurora-registry.js 都不在此列，必须从 APK 包内取新版本。
+// v18 变更的 index.html / app.js / aurora.js / aurora.css / aurora-registry.js 同理。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',

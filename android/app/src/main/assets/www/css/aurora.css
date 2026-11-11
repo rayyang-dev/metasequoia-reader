@@ -1,62 +1,11 @@
-/* 红杉能力中心 Aurora · 独立样式（v1.4.0） */
-/* #aurora-panel 只是遮罩，真正的底部卡片是 #aurora-sheet（由 js/aurora.js 创建）。
-   历史 bug：DOM 里缺这一层时，标题栏被当成卡片压到左下角、200 项清单以透明背景
-   铺满全屏，与设置页文字逐行重叠。改 DOM 或改 CSS 时必须保持两者一致。 */
-#aurora-panel {
-  position: fixed; inset: 0; z-index: 60; background: rgba(20, 16, 12, 0.42);
-  display: flex; align-items: flex-end; justify-content: center;
-}
-#aurora-panel.hidden { display: none; }
-#aurora-panel > #aurora-sheet {
-  width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column;
-  background: var(--paper, #f6efe2); color: var(--fg, #202b31);
-  border-radius: 18px 18px 0 0; overflow: hidden;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.3);
-}
-#aurora-panel.dark > #aurora-sheet { background: #211c17; color: #e9e0cf; }
-/* 标题栏：固定高度不被压缩，✕ 始终在右侧 */
-#aurora-head {
-  flex: none; padding: 14px 18px; font-weight: 700; font-size: 17px;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  display: flex; justify-content: space-between; align-items: center;
-}
-#aurora-close { background: none; border: 0; font-size: 20px; cursor: pointer; color: inherit; }
-/* 清单只在卡片内部滚动：flex 子项必须 min-height:0，否则 overflow-y:auto 不生效 */
-#aurora-body { flex: 1; min-height: 0; padding: 14px 18px 40px; overflow-y: auto; }
-.au-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.au-ring { width: 76px; height: 76px; }
-.au-ring-bg { fill: none; stroke: rgba(0,0,0,.08); stroke-width: 10; }
-.au-ring-fg { fill: none; stroke: #A81F1F; stroke-width: 10; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 60px 60px; transition: stroke-dasharray .5s; }
-.au-ring-txt { position: absolute; margin: 22px 0 0 22px; font-weight: 700; font-size: 15px; }
-.au-counts { font-size: 13px; opacity: .8; }
-.au-search { flex: 1; min-width: 160px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.7); }
-.au-my-wrap { margin: 12px 0; padding: 12px; border-radius: 12px; background: rgba(168,31,31,.06); }
-.au-my h3 { margin: 10px 0 6px; font-size: 14px; color: #A81F1F; }
-.au-my label { display: block; font-size: 13px; margin: 6px 0; }
-.au-my input[type=number] { margin-left: 8px; }
-.au-btn { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 10px; background: #A81F1F; color: #fff; font-size: 13px; cursor: pointer; }
-.au-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
-.au-tab { padding: 6px 12px; border: 1px solid rgba(0,0,0,.12); border-radius: 999px; background: transparent; font-size: 12px; cursor: pointer; color: inherit; }
-.au-tab.active { background: #A81F1F; color: #fff; border-color: #A81F1F; }
-.au-gh { margin: 14px 0 4px; font-weight: 700; font-size: 13px; color: #8a7a5c; }
-.au-row { display: grid; grid-template-columns: 52px 1fr auto; gap: 6px 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed rgba(0,0,0,.06); }
-.au-id { font-size: 11px; opacity: .5; font-variant-numeric: tabular-nums; }
-.au-row b { font-size: 14px; }
-.au-row .au-desc { grid-column: 2 / 4; font-size: 12px; opacity: .65; }
-.au-b { font-size: 11px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
-.au-done { background: #2EA84F; color: #fff; }
-.au-par { background: #FFD23F; color: #5a4a00; }
-.au-pla { background: rgba(0,0,0,.08); color: #666; }
-.au-empty { padding: 30px; text-align: center; opacity: .5; }
-.au-stat { font-size: 13px; margin: 6px 0; }
+/* 红杉 Aurora 后台能力样式（v1.4.6）
+ * 「红杉能力中心 · 200 项」清单面板已移除，这里只保留常驻后台能力所需的三条规则：
+ * 亮度遮罩 / 双击缩放 / 护眼提醒 toast。能力状态见 docs/roadmap-200.md。 */
+#aurora-dim { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+#reader .reader-pages.aurora-zoom, #reader .book.aurora-zoom { transform: scale(1.12); transform-origin: center top; }
 #aurora-toast {
   position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%) translateY(20px);
   background: rgba(20,16,12,.9); color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 13px;
   z-index: 90; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; max-width: 86%;
 }
 #aurora-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-#aurora-dim { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-#reader .reader-pages.aurora-zoom, #reader .book.aurora-zoom { transform: scale(1.12); transform-origin: center top; }
-#au-confetti { position: fixed; inset: 0; pointer-events: none; z-index: 95; }
-#au-confetti i { position: absolute; top: -20px; width: 9px; height: 14px; border-radius: 2px; animation: au-fall 2.4s linear forwards; }
-@keyframes au-fall { to { transform: translateY(105vh) rotate(540deg); opacity: .2; } }
