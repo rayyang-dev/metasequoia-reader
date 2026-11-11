@@ -259,8 +259,14 @@ const nx = fs.readFileSync(path.join(ROOT, 'js/nexus.js'), 'utf8');
 const nxCss = fs.readFileSync(path.join(ROOT, 'css/nexus.css'), 'utf8');
 const roadmap = fs.readFileSync('docs/roadmap-200.md', 'utf8');
 
-check('SW 升到 inkreader-v14 / PREV_CACHE v13',
-  /const CACHE = 'inkreader-v14'/.test(sw) && /const PREV_CACHE = 'inkreader-v13'/.test(sw));
+// 历史写法把缓存版本写死成 v14/v13，项目每升一版就误报一次（v15/v16/v17 均被误判）。
+// 改为相对断言：CACHE 必须 >= v14，且 PREV_CACHE 恰好是前一版。
+// 这样仍能抓住「改了前端却忘记升 CACHE / 忘记顺延 PREV_CACHE」这个真机高危坑。
+check('SW 缓存版本已递增且 PREV_CACHE 指向前一版', (() => {
+  const cur = /const CACHE = 'inkreader-v(\d+)'/.exec(sw);
+  const prev = /const PREV_CACHE = 'inkreader-v(\d+)'/.exec(sw);
+  return !!cur && !!prev && Number(cur[1]) >= 14 && Number(cur[1]) === Number(prev[1]) + 1;
+})());
 check('SW ASSETS 补齐 nexus.css / nexus.js / nexus-core.js',
   /'css\/nexus\.css'/.test(sw) && /'js\/nexus\.js'/.test(sw) && /'js\/nexus-core\.js'/.test(sw));
 check('index.html 引入 nexus.css', /css\/nexus\.css/.test(html));
@@ -278,7 +284,14 @@ check('删书文案不再宣称「不可恢复」', /30 天内可在/.test(app))
 check('CSS 零动画（墨水屏原则）', !/animation\s*:|transition\s*:/.test(nxCss));
 check('package.json 纳入 test:nexus 且 npm test 含第八套',
   !!pkg.scripts['test:nexus'] && /test\/nexus\.mjs/.test(pkg.scripts.test));
-check('版本升到 versionCode 27 / 1.4.2', /versionCode 27/.test(gradle) && /versionName "1\.4\.2"/.test(gradle));
+// 同理改为「不低于」检查，避免版本号一推进就误报（当前 30 / 1.4.5）。
+check('Android 版本号有效且不低于 27 / 1.4.2', (() => {
+  const code = /versionCode\s+(\d+)/.exec(gradle);
+  const name = /versionName\s+"(\d+)\.(\d+)\.(\d+)"/.exec(gradle);
+  if (!code || !name) return false;
+  const sem = Number(name[1]) * 10000 + Number(name[2]) * 100 + Number(name[3]);
+  return Number(code[1]) >= 27 && sem >= 10402;
+})());
 const roadIds = (roadmap.match(/R-[0-9]{3}/g) || []).filter((v, i, a) => a.indexOf(v) === i);
 check('路线图文件含 200 个编号项与总览',
   roadIds.length === 200 && /合计 200/.test(roadmap));
