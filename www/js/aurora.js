@@ -168,7 +168,14 @@ export function mountAurora(ctx) {
   if ($('aurora-panel')) return;
   const panel = document.createElement('div');
   panel.id = 'aurora-panel'; panel.className = 'hidden';
-  panel.innerHTML = `<div id="aurora-head">红杉能力中心 · 200 项<input id="aurora-close" type="button" value="✕"></div><div id="aurora-body"></div>`;
+  // #aurora-sheet 是「整张底部弹出卡片」，css/aurora.css 的 #aurora-panel > #aurora-sheet
+  // 规则依赖这一层：不透明纸底、92vh 高度上限、圆角、内部滚动都由它承担。
+  // 少了这一层，#aurora-head 会退化成左下角一张小卡片，#aurora-body 会以透明背景铺满
+  // 整个屏幕，200 项清单与设置页文字逐行叠在一起（v1.4.5 真机截图报的 bug）。
+  panel.innerHTML = `<div id="aurora-sheet">
+    <div id="aurora-head">红杉能力中心 · 200 项<input id="aurora-close" type="button" value="✕"></div>
+    <div id="aurora-body"></div>
+  </div>`;
   document.body.appendChild(panel);
   $('aurora-close').addEventListener('click', () => setOpen(false));
   panel.addEventListener('click', (e) => { if (e.target === panel) setOpen(false); });

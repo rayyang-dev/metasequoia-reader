@@ -5,8 +5,11 @@
 // 必须 +1 且把 css/style.css 从 REUSE 摘出，否则 WebView 会继续喂回旧样式。
 // v16：首版送审隐藏 AI / 在线翻译入口——index.html 变更，并新增
 // css/release-review.css、js/release-gate.js（新文件不能进 REUSE，必须从包内取新版）。
-const CACHE = 'inkreader-v16';
-const PREV_CACHE = 'inkreader-v15';
+// v17：修复「红杉能力中心」面板与设置页文字重叠——css/aurora.css、js/aurora.js 均变更，
+// 两文件都不得进 REUSE；同时把 aurora 模块图（css/aurora.css、js/aurora.js、
+// js/aurora-core.js、js/aurora-registry.js）补进 ASSETS，离线首启不再漏资源。
+const CACHE = 'inkreader-v17';
+const PREV_CACHE = 'inkreader-v16';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -21,6 +24,8 @@ const VENDOR = [
 // v1.1.19 新增统计仪表盘层：css/stats.css、js/stats.js（由 app.js 静态 import）。
 // v1.2.0 新增 Nexus 能力层：css/nexus.css、js/nexus.js、js/nexus-core.js（后者被前者静态 import）。
 // v1.3.0 扩展 Nexus 至 200 项能力（簇 11–20），书架待读队列/今日一句、护眼与节律（20-20-20、夜间定时、暗室）。
+// v1.4.0 Aurora 能力中心：index.html 直接 link css/aurora.css，app.js → aurora.js →
+// aurora-core.js → aurora-registry.js。v17 补齐这条模块图，避免离线首启缺样式/脚本。
 const ASSETS = [
   './',
   'index.html',
@@ -30,6 +35,7 @@ const ASSETS = [
   'css/plus.css',
   'css/stats.css',
   'css/nexus.css',
+  'css/aurora.css',
   'css/ink-flip.css',
   'js/app.js',
   'js/inkflip.js',
@@ -49,6 +55,9 @@ const ASSETS = [
   'js/stats.js',
   'js/nexus.js',
   'js/nexus-core.js',
+  'js/aurora.js',
+  'js/aurora-core.js',
+  'js/aurora-registry.js',
   'js/importer-worker.js',
   'js/vendor/fflate.js',
   'js/vendor/pdf.min.js',
@@ -58,7 +67,9 @@ const ASSETS = [
 ];
 
 // 相对上一版内容完全没变的文件：升级时直接从旧缓存复制，不产生任何网络/磁盘重复下载。
-// 注意：v16 新增的 release-gate.js / release-review.css 以及变更过的 index.html 都不在此列。
+// 注意：v16 新增的 release-gate.js / release-review.css、变更过的 index.html，
+// 以及 v17 变更过的 css/aurora.css、js/aurora.js 与新增的 aurora-core.js /
+// aurora-registry.js 都不在此列，必须从 APK 包内取新版本。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',

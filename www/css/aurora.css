@@ -1,21 +1,28 @@
 /* 红杉能力中心 Aurora · 独立样式（v1.4.0） */
+/* #aurora-panel 只是遮罩，真正的底部卡片是 #aurora-sheet（由 js/aurora.js 创建）。
+   历史 bug：DOM 里缺这一层时，标题栏被当成卡片压到左下角、200 项清单以透明背景
+   铺满全屏，与设置页文字逐行重叠。改 DOM 或改 CSS 时必须保持两者一致。 */
 #aurora-panel {
   position: fixed; inset: 0; z-index: 60; background: rgba(20, 16, 12, 0.42);
   display: flex; align-items: flex-end; justify-content: center;
 }
 #aurora-panel.hidden { display: none; }
-#aurora-panel > #aurora-head {
+#aurora-panel > #aurora-sheet {
   width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column;
-  background: var(--paper, #f6efe2); border-radius: 18px 18px 0 0; overflow: hidden;
+  background: var(--paper, #f6efe2); color: var(--fg, #202b31);
+  border-radius: 18px 18px 0 0; overflow: hidden;
   box-shadow: 0 -8px 40px rgba(0,0,0,.3);
 }
-#aurora-panel.dark > #aurora-head { background: #211c17; color: #e9e0cf; }
+#aurora-panel.dark > #aurora-sheet { background: #211c17; color: #e9e0cf; }
+/* 标题栏：固定高度不被压缩，✕ 始终在右侧 */
 #aurora-head {
-  padding: 14px 18px; font-weight: 700; font-size: 17px; border-bottom: 1px solid rgba(0,0,0,.08);
+  flex: none; padding: 14px 18px; font-weight: 700; font-size: 17px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
   display: flex; justify-content: space-between; align-items: center;
 }
 #aurora-close { background: none; border: 0; font-size: 20px; cursor: pointer; color: inherit; }
-#aurora-body { padding: 14px 18px 40px; overflow-y: auto; }
+/* 清单只在卡片内部滚动：flex 子项必须 min-height:0，否则 overflow-y:auto 不生效 */
+#aurora-body { flex: 1; min-height: 0; padding: 14px 18px 40px; overflow-y: auto; }
 .au-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .au-ring { width: 76px; height: 76px; }
 .au-ring-bg { fill: none; stroke: rgba(0,0,0,.08); stroke-width: 10; }
