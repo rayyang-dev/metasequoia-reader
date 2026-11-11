@@ -17,8 +17,12 @@
 // js/app.js、js/pro.js 均变更（.camera-feature-only 语义类 + setMode 兜底）。
 // 其中 js/pro.js 原本在 REUSE 里，必须从 REUSE 摘出，否则 WebView 升级时仍从旧缓存
 // 复制旧版 pro.js，隐藏规则会失效、「视线」按钮照旧可见，与新版 manifest 口径不符。
-const CACHE = 'inkreader-v20';
-const PREV_CACHE = 'inkreader-v19';
+// v21：应用内三份法律文案（隐私政策 / 用户协议 / 权限说明）与线上两份静态页统一改为
+// 「本版本未开放 AI / 在线翻译、仅本地 WebView」口径，删除所有「把数据发给第三方」的描述；
+// js/app.js 与 js/release-gate.js 变更（两者本来就不在 REUSE，无需摘出），仍须 +1 触发
+// INK_SW_ACTIVATED 版本比对，避免真机升级后继续从旧缓存显示旧的法律条款。
+const CACHE = 'inkreader-v21';
+const PREV_CACHE = 'inkreader-v20';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [

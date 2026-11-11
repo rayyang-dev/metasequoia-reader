@@ -60,11 +60,11 @@
     /* localStorage 不可用或 JSON 损坏：忽略，入口隐藏仍然生效 */
   }
 
-  // 3) 法律声明页补一条送审版说明。
-  //    app.js 里的隐私政策 / 用户协议 / 权限说明仍有「AI 与联网功能」「AI 内容免责」条款，
-  //    入口隐藏后若不加说明，会构成审核常见的「应用描述与实际功能不符」。
+  // 3) 法律声明页补一条醒目的送审版说明。
+  //    应用内三份与线上两份法律文案已统一按当前版本实际功能编写，不再描述任何未开放的
+  //    AI / 联网能力；这里再补一条总纲，便于审核人员快速确认版本范围。
   //    #legal-body 由 app.js 动态重绘（切 tab 会覆盖），所以用 MutationObserver 持续补挂。
-  //    这里不改 app.js 一个字符，开关改回 true 后整段逻辑自动不执行。
+  //    这里不改 LEGAL_CONTENT 一个字符，开关改回 true 后整段逻辑自动不执行。
   function installLegalNotice() {
     var host = document.getElementById('legal-body');
     if (!host) return;
@@ -76,7 +76,7 @@
       box.className = 'legal-review-notice';
       box.innerHTML = '<b>送审版本说明</b>：本版本是纯本地离线阅读工具，未开放 AI 助手、在线翻译与' +
         '「视线翻页」功能，<b>不申请相机权限</b>，不向任何第三方服务发送书籍内容或个人数据。' +
-        '下方条款中涉及 AI / 翻译 / 相机的描述，仅适用于后续开放该能力的版本。';
+        '应用内隐私政策、用户协议与权限说明均按本版本实际功能编写，与线上隐私政策页口径一致。';
       host.insertBefore(box, host.firstChild);
     }
     prepend();
