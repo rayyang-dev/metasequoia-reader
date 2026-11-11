@@ -143,11 +143,20 @@ try {
     if (b) b.click();
   });
   await new Promise((r) => setTimeout(r, 300));
+  // 判据用 renderAuto() 同步打在按钮上的 active 标记，而不是 localStorage：
+  // store.js 的 saveSettings 带防抖定时器，落盘不是同步的，读 localStorage 会偶发读到旧值，
+  // 造成闸门随机变红。active 由 setMode 后的 renderAuto 立即刷新，既能证明点击确实生效，
+  // 也能在兜底误伤（timed 被改成 off）时准确失败。
   const timedMode = await page.evaluate(() => {
-    try { return (JSON.parse(localStorage.getItem('inkreader:settings')) || {}).autoMode; }
-    catch (e) { return null; }
+    const timed = document.querySelector('#pro-mode button[data-mode="timed"]');
+    const off = document.querySelector('#pro-mode button[data-mode="off"]');
+    return {
+      timedActive: !!timed && timed.classList.contains('active'),
+      offActive: !!off && off.classList.contains('active'),
+    };
   });
-  check('点击「定时」仍生效（setMode 兜底未误伤非相机模式）', timedMode === 'timed', timedMode);
+  check('点击「定时」仍生效（setMode 兜底未误伤非相机模式）',
+    timedMode.timedActive && !timedMode.offActive, timedMode);
 
   // ⑥ 应用内权限说明页口径与 manifest 一致
   await page.evaluate(() => {
