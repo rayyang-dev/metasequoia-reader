@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 可选能力：仅「视线翻页」开启时申请；required=false 保证无前置摄像头的设备仍可安装 -->
-    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 送审版（v1.4.6 起）：已移除相机能力与「视线翻页」入口，本文件不再声明任何相机权限或
+         前置摄像头 feature，避免 AGC「应用隐私权限说明」出现敏感权限「相机」及场景截图包要求。
+         恢复方式见 docs/华为AGC提交操作手册.md §4.1：在 manifest 的 Permissions 区补回两条声明，
+         并把 www/js/release-gate.js 的 CAMERA_FEATURE_ENABLED 改回 true，重新打包即可。 -->
 
     <application
         android:allowBackup="true"

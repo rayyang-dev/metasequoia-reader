@@ -73,7 +73,7 @@ export function mountReaderPro(ctx) {
         <h3>自动翻页</h3>
         <div class="pro-row"><span>方式</span><div class="pro-ctl" id="pro-mode">
           <button data-mode="off">关闭</button><button data-mode="timed">定时</button>
-          <button data-mode="adaptive">跟节奏</button><button data-mode="gaze">视线</button>
+          <button data-mode="adaptive">跟节奏</button><button data-mode="gaze" class="camera-feature-only">视线</button>
         </div></div>
         <div class="pro-row"><span>翻页间隔</span><div class="pro-ctl">
           <input id="pro-interval" type="range" min="4" max="60" step="1" value="12" aria-label="自动翻页间隔" />
@@ -81,26 +81,29 @@ export function mountReaderPro(ctx) {
         <div class="pro-row"><span>翻页前预告</span><div class="pro-ctl">
           <input id="pro-confirm" type="range" min="0" max="2000" step="100" value="700" aria-label="翻页前预告时长" />
           <span class="pro-val" id="pro-confirm-val">700ms</span></div></div>
-        <div class="pro-row"><span>视线灵敏度</span><div class="pro-ctl">
+        <div class="pro-row camera-feature-only"><span>视线灵敏度</span><div class="pro-ctl">
           <input id="pro-sens" type="range" min="1" max="5" step="1" value="4" aria-label="视线灵敏度" />
           <span class="pro-val" id="pro-sens-val">4</span></div></div>
-        <div class="pro-row"><span>视线引擎</span><div class="pro-ctl">
+        <div class="pro-row camera-feature-only"><span>视线引擎</span><div class="pro-ctl">
           <select id="pro-gaze-engine" aria-label="视线检测引擎">
             <option value="auto">自动（真实·端侧）</option>
             <option value="sim">演示（模拟视线）</option>
           </select>
         </div></div>
-        <div class="pro-row"><span>视线省电</span><div class="pro-ctl" id="pro-gaze-power">
+        <div class="pro-row camera-feature-only"><span>视线省电</span><div class="pro-ctl" id="pro-gaze-power">
           <button data-val="off">关闭</button><button data-val="on">开启</button>
         </div></div>
         <div class="pro-row"><span>状态</span><div class="pro-ctl">
           <span id="pro-engine">引擎：未启动</span>
-          <button id="pro-calibrate" disabled>校准</button>
+          <button id="pro-calibrate" class="camera-feature-only" disabled>校准</button>
         </div></div>
         <p class="pro-note">
-          <b>视线翻页</b>：读到页底后，视线回到页首（回扫）即翻下一页；翻页前有预告，点一下可取消，误翻可撤销。<br />
-          <b>隐私</b>：开启后仅调用前置摄像头做<b>本机端侧</b>检测，视频帧不上传、不保存、不写入日志；关闭 / 退出阅读器 / 切到后台立即释放摄像头。<br />
-          <b>降级</b>：设备不支持或拒绝授权时，自动切换为「定时」，并在状态栏说明原因。<b>跟随节奏</b>会学习你最近几次手动翻页的间隔。<b>演示</b>：若设备无真实检测能力，可在「视线引擎」选「演示（模拟视线）」，它会自动注入回扫动作，让你在无摄像头时也能端到端看到 视线→翻页 链路真实生效（明确标注为模拟，非真实检测）。
+          <span class="camera-feature-only">
+            <b>视线翻页</b>：读到页底后，视线回到页首（回扫）即翻下一页；翻页前有预告，点一下可取消，误翻可撤销。<br />
+            <b>隐私</b>：开启后仅调用前置摄像头做<b>本机端侧</b>检测，视频帧不上传、不保存、不写入日志；关闭 / 退出阅读器 / 切到后台立即释放摄像头。<br />
+            <b>降级</b>：设备不支持或拒绝授权时，自动切换为「定时」，并在状态栏说明原因。<b>演示</b>：若设备无真实检测能力，可在「视线引擎」选「演示（模拟视线）」，它会自动注入回扫动作，让你在无摄像头时也能端到端看到 视线→翻页 链路真实生效（明确标注为模拟，非真实检测）。<br />
+          </span>
+          <b>跟随节奏</b>会学习你最近几次手动翻页的间隔。
         </p>
       </div>
 
@@ -113,7 +116,7 @@ export function mountReaderPro(ctx) {
         <div class="pro-gz">
           <span>点左侧<br />上一页</span><span>点中间<br />唤出菜单</span><span>点右侧<br />下一页</span>
         </div>
-        <div>也可以左右滑动、用音量键翻页。底部 <b>Aa</b> 调排版，<b>◎</b> 开自动翻页（含视线回扫）。</div>
+        <div>也可以左右滑动、用音量键翻页。底部 <b>Aa</b> 调排版，<b>◎</b> 开自动翻页<span class="camera-feature-only">（含视线回扫）</span>。</div>
         <button id="pro-guide-ok">知道了</button>
       </div>
     </div>`;
@@ -316,6 +319,10 @@ export function mountReaderPro(ctx) {
   // ---------- 自动翻页模式切换 ----------
   async function setMode(mode) {
     mode = AUTO_MODES.includes(mode) ? mode : 'off';
+    // 送审版兜底：相机权限与「视线」入口已移除，任何残留设置 / 自动化路径都不允许走到
+    // gaze 分支（否则会尝试 getUserMedia，留下「功能点了没反应」的死开关）。
+    // 普通 PWA / 测试环境未定义该开关，开发版开关为 true，两种情况下行为完全不变。
+    if (mode === 'gaze' && window.INK_CAMERA_ENABLED === false) mode = 'off';
     closePanel();
     if (mode === 'off') {
       gaze.stop();

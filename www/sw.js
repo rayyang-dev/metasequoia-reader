@@ -13,8 +13,12 @@
 // v19：送审版把 App 内法律页 LEGAL_CONTACT_EMAIL 与 docs/site 隐私政策页的占位邮箱
 // 统一替换为真实联系邮箱（js/app.js 变更）。app.js 本就不在 REUSE 列表里，但仍须 +1
 // 触发页面 INK_SW_ACTIVATED 版本比对并重载，避免真机升级后继续显示旧邮箱。
-const CACHE = 'inkreader-v19';
-const PREV_CACHE = 'inkreader-v18';
+// v20：送审版移除相机权限与「视线翻页」入口——js/release-gate.js、css/release-review.css、
+// js/app.js、js/pro.js 均变更（.camera-feature-only 语义类 + setMode 兜底）。
+// 其中 js/pro.js 原本在 REUSE 里，必须从 REUSE 摘出，否则 WebView 升级时仍从旧缓存
+// 复制旧版 pro.js，隐藏规则会失效、「视线」按钮照旧可见，与新版 manifest 口径不符。
+const CACHE = 'inkreader-v20';
+const PREV_CACHE = 'inkreader-v19';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -76,6 +80,7 @@ const ASSETS = [
 // 以及 v17 变更过的 css/aurora.css、js/aurora.js 与新增的 aurora-core.js /
 // aurora-registry.js 都不在此列，必须从 APK 包内取新版本。
 // v18 变更的 index.html / app.js / aurora.js / aurora.css / aurora-registry.js 同理。
+// v20 变更的 js/pro.js 已从本列表摘出（见文件头注释）；js/gaze.js 未改动，可继续复用。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',
@@ -91,7 +96,7 @@ const REUSE = [
   'js/llm.js',
   'js/ai.js',
   'js/gaze.js',
-  'js/pro.js',
+  // js/pro.js 在 v20 已变更（送审版隐藏视线翻页入口），必须从 APK 包内取新版本，不能复用旧缓存
   'js/importer-worker.js',
   'js/vendor/fflate.js',
   'js/vendor/pdf.min.js',

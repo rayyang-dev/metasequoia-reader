@@ -1,38 +1,59 @@
 /*
  * 首版应用商店审核构建开关（独立文件，零污染、可回退）。
  *
- * 目的：审核期间隐藏 AI 助手 / 在线翻译的全部入口，并阻断历史设置导致的后台外发，
- *       使送审包在功能上等同于「纯本地离线阅读工具」，规避生成式 AI 算法备案、
- *       安全评估报告、个人信息出境等前置合规要求。
+ * 两组开关各自独立、互不干扰：
+ *   AI_FEATURES_ENABLED    —— 隐藏 AI 助手 / 在线翻译入口，并清零历史联网设置，
+ *                             规避生成式 AI 算法备案、安全评估报告等前置合规要求。
+ *   CAMERA_FEATURE_ENABLED —— 隐藏「视线翻页」的全部入口、清零历史 autoMode='gaze'，
+ *                             并在 pro.js 的 setMode() 加一道兜底；配合 AndroidManifest.xml
+ *                             移除 CAMERA 权限，使 AGC「应用隐私权限说明」不再出现敏感权限
+ *                             「相机」，因此无需提交权限说明话术与使用场景截图包（v1.4.6 起）。
  *
- * 恢复方式：把下方 AI_FEATURES_ENABLED 改为 true，重新打包即可完整恢复所有能力，
- *           无需改动任何其他文件。css/release-review.css 会随 <html> 上的 class 自动失效。
+ * 恢复方式：把对应开关改回 true，重新打包即可完整恢复所有能力，无需改动任何其他业务脚本；
+ *           相机能力还需按 docs/华为AGC提交操作手册.md §4.1 补回 manifest 的两条声明。
+ *           css/release-review.css 中的规则全部以 <html> 上的 class 为前缀，开关打开后自动失效。
  *
  * 约束：本文件是普通同步脚本，必须在 index.html 的 <head> 中、所有 module 脚本之前加载，
  *       这样 documentElement 的 class 在 body 解析前就已生效，不会出现界面闪现。
  */
 (function () {
   var AI_FEATURES_ENABLED = false;
+  var CAMERA_FEATURE_ENABLED = false;
 
   window.INK_AI_ENABLED = AI_FEATURES_ENABLED;
-  if (AI_FEATURES_ENABLED) return;
+  window.INK_CAMERA_ENABLED = CAMERA_FEATURE_ENABLED;
 
-  // 1) 打标记：release-review.css 中所有规则都以 .ai-review-hide 为前缀。
-  document.documentElement.classList.add('ai-review-hide');
+  // 1) 打标记：release-review.css 中所有规则都以 .ai-review-hide / .camera-review-hide 为前缀。
+  if (!AI_FEATURES_ENABLED) {
+    document.documentElement.classList.add('ai-review-hide');
+  }
+  if (!CAMERA_FEATURE_ENABLED) {
+    document.documentElement.classList.add('camera-review-hide');
+  }
+  if (AI_FEATURES_ENABLED && CAMERA_FEATURE_ENABLED) return;
 
-  // 2) 清除历史设置里残留的自动联网开关。
+  // 2) 清除历史设置里残留的开关。
   //    老用户若曾开启「AI 大模型」或「导入后自动生成导读」，仅隐藏 UI 仍会在导入书籍时
   //    由 app.js 的自动导读逻辑触发外部 API 调用，因此必须把这两个字段归零。
-  //    只改这两个字段，其余设置原样保留；隐私模式 / 数据损坏时静默跳过，不影响启动。
+  //    同理，若自动翻页模式停在「视线」，送审版入口隐藏后仍可能被恢复逻辑读到，一并归零。
+  //    只改这几个字段，其余设置原样保留；隐私模式 / 数据损坏时静默跳过，不影响启动。
   try {
     var KEY = 'inkreader:settings';
     var raw = localStorage.getItem(KEY);
     if (raw) {
       var saved = JSON.parse(raw);
       if (saved && typeof saved === 'object') {
-        saved.translateProvider = 'none';
-        saved.aiAutoSummary = false;
-        localStorage.setItem(KEY, JSON.stringify(saved));
+        var dirty = false;
+        if (!AI_FEATURES_ENABLED) {
+          saved.translateProvider = 'none';
+          saved.aiAutoSummary = false;
+          dirty = true;
+        }
+        if (!CAMERA_FEATURE_ENABLED && saved.autoMode === 'gaze') {
+          saved.autoMode = 'off';
+          dirty = true;
+        }
+        if (dirty) localStorage.setItem(KEY, JSON.stringify(saved));
       }
     }
   } catch (e) {
@@ -53,9 +74,9 @@
       var box = document.createElement('div');
       box.id = NOTICE_ID;
       box.className = 'legal-review-notice';
-      box.innerHTML = '<b>送审版本说明</b>：本版本是纯本地离线阅读工具，未开放 AI 助手与在线翻译功能，' +
-        '不向任何第三方服务发送书籍内容或个人数据。下方条款中涉及 AI / 翻译的描述，' +
-        '仅适用于后续开放该能力的版本。';
+      box.innerHTML = '<b>送审版本说明</b>：本版本是纯本地离线阅读工具，未开放 AI 助手、在线翻译与' +
+        '「视线翻页」功能，<b>不申请相机权限</b>，不向任何第三方服务发送书籍内容或个人数据。' +
+        '下方条款中涉及 AI / 翻译 / 相机的描述，仅适用于后续开放该能力的版本。';
       host.insertBefore(box, host.firstChild);
     }
     prepend();
