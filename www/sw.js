@@ -10,8 +10,11 @@
 // js/aurora-core.js、js/aurora-registry.js）补进 ASSETS，离线首启不再漏资源。
 // v18：移除「红杉能力中心 · 200 项」清单 UI（index.html / app.js / aurora.js / aurora.css
 // 变更），并按代码核对同步 aurora-registry.js 里 69 项状态。变更文件一律不进 REUSE。
-const CACHE = 'inkreader-v18';
-const PREV_CACHE = 'inkreader-v17';
+// v19：送审版把 App 内法律页 LEGAL_CONTACT_EMAIL 与 docs/site 隐私政策页的占位邮箱
+// 统一替换为真实联系邮箱（js/app.js 变更）。app.js 本就不在 REUSE 列表里，但仍须 +1
+// 触发页面 INK_SW_ACTIVATED 版本比对并重载，避免真机升级后继续显示旧邮箱。
+const CACHE = 'inkreader-v19';
+const PREV_CACHE = 'inkreader-v18';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [

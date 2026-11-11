@@ -63,7 +63,7 @@ const THEME_PREVIEW = {
 // 法律声明文案（隐私政策 / 用户协议 / 权限说明）。iOS 与华为两平台通用，纯本地静态内容，无服务器依赖。
 // 联系邮箱、生效日期等需按实际情况替换（下方以占位给出）。
 const LEGAL_EFFECTIVE_DATE = '2026-11-04';
-const LEGAL_CONTACT_EMAIL = 'sequoia-dev@example.com'; // 待你替换为真实联系邮箱
+const LEGAL_CONTACT_EMAIL = '732897783@qq.com'; // 送审版：与应用外隐私政策页保持一致
 const LEGAL_CONTENT = {
   privacy: {
     title: '隐私政策',
