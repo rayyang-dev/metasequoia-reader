@@ -12,7 +12,7 @@
 | 材料 | 状态 | 值 / 路径 |
 |---|---|---|
 | 送审 APK | ✅ 已备（**用这个**） | `D:/work/code/ai-app/Metasequoia-v1.4.6-review-release.apk`（18.9 MB，V2 签名，**无相机权限**，md5 `69efee5d5fd88ab064ea417d916637a9`） |
-| 线上 Release | ⚠️ 仍是旧包 | `v1.4.5` 资产含 CAMERA，**不要用于送审**；AGC 直接上传上面的本地文件即可 |
+| 线上 Release | ✅ 已同步补发 v1.4.6 | `https://github.com/rayyang-dev/sequoia-reader/releases/tag/v1.4.6`；资产 `Metasequoia-v1.4.6-release.apk` 与本地送审包是同一文件，`latest` 已指向 v1.4.6。旧 Release `v1.4.5` 含 CAMERA，仅作历史留存 |
 | 应用名 | ✅ | `红杉阅读`（≤15 汉字，须与 APK 内 `app_name`、图标文字一致） |
 | 包名 | ✅ | `com.rayyang.metasequoia`（**大小写敏感，须在应用详情页手工填，见 §2.1**） |
 | APP ID | ✅ 已生成 | `119759651`（《免责函》里要填，见 §5） |
