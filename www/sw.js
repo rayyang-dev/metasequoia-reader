@@ -25,8 +25,11 @@
 // js/privacy-consent.js 与 css/privacy.css 两个文件（新文件绝不能进 REUSE），
 // index.html 与 js/app.js 均变更（两者本就不在 REUSE）。仍须 +1 触发页面重载，
 // 否则真机升级后 WebView 会继续吃旧缓存，弹窗不出现 = 驳回问题依旧。
-const CACHE = 'inkreader-v22';
-const PREV_CACHE = 'inkreader-v21';
+// v23：修复「每日阅读时长偏短」——js/app.js、js/plus.js、js/plus-core.js 均变更
+// （把 30 秒有效阅读门槛从累计时长解耦）。这三个文件本来就不在 REUSE，无需摘出；
+// 但仍须 +1 触发 INK_SW_ACTIVATED 版本比对，否则真机升级后继续吃旧的计时逻辑。
+const CACHE = 'inkreader-v23';
+const PREV_CACHE = 'inkreader-v22';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -94,6 +97,8 @@ const ASSETS = [
 // v20 变更的 js/pro.js 已从本列表摘出（见文件头注释）；js/gaze.js 未改动，可继续复用。
 // v22 新增的 js/privacy-consent.js / css/privacy.css 以及变更的 index.html / js/app.js
 // 一律不在此列，必须从 APK 包内取新版本，否则升级后仍显示无弹窗的旧界面。
+// v23 变更的 js/app.js / js/plus.js / js/plus-core.js 同样不在此列，升级后必须取包内新版，
+// 否则「有效阅读门槛不再卡累计时长」的修复在真机上不生效。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',

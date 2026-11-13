@@ -792,7 +792,7 @@ export function mountReaderPlus(ctx) {
   // ---------------- 设置开关 ----------------
   const SWITCHES = [
     ['perBookLayout', '按书记忆排版', '每本书独立保存字号 / 行距 / 主题'],
-    ['effectiveReading', '有效阅读统计', '亮屏放着不动不计时，统计更真实'],
+    ['effectiveReading', '有效阅读估算', '静置时排除本次会话有效阅读与剩余时长估算；每日阅读时长统计不受影响'],
     ['adaptiveRegal', 'Regal 自适应刷新', '快翻 / 夜览 / 开启动画时减少闪屏'],
     ['chapterEndPause', '章末自动停', '自动翻页到章末 / 书末暂停并提示继续'],
     ['gazeIntent', '视线意图判定', '视线丢失 / 选字 / 面板打开时忽略回扫'],

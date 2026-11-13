@@ -267,6 +267,27 @@ export function effectiveTick(o) {
   return false;
 }
 
+/**
+ * 每日阅读时长结算（v1.4.9）：返回本 tick 应写入 inkreader:stats 的毫秒数。
+ *
+ * 与 effectiveTick() 分工不同 —— effectiveTick 只服务「本次会话有效阅读 / 剩余时长
+ * 估算」，不再作为累计时长的门槛。旧版 app.js 把 countThisTick() 的返回值直接当计时
+ * 闸门，安静读书（>30s 无触屏）会被判成「亮屏放置」：实测 60 秒翻一页少算 48%、
+ * 90 秒翻一页少算 66%、180 秒翻一页少算 83%。
+ *
+ * mode='visible'（默认）：阅读器可见即全量计时，与用户感知的真实阅读时长一致。
+ * mode='effective'：恢复 v1.4.8 及更早的门槛行为，便于一行回退。
+ * dt 一律 clamp 到 60s：WebView 定时器被主线程阻塞/节流时不再整段丢弃。
+ */
+export function readingTimeTick(o) {
+  const s = o || {};
+  const dt = Number(s.dt) || 0;
+  if (dt <= 0) return 0;
+  const safe = Math.min(dt, 60000);
+  if (s.mode === 'effective') return s.effective ? safe : 0;
+  return safe;
+}
+
 /** 剩余阅读时长：用本次会话的有效阅读速度估算，冷启动回退到中文常见 400 字/分。 */
 export function estimateRemainingMinutes(o) {
   const s = o || {};

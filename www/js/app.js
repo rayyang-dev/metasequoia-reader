@@ -19,6 +19,7 @@ import { createTurnController } from './turn.js';
 import { createGazeEngine } from './gaze.js';
 import { mountReaderPro } from './pro.js';
 import { mountReaderPlus } from './plus.js';
+import { readingTimeTick } from './plus-core.js';
 import { mountStatsDashboard } from './stats.js';
 import { mountReaderNexus } from './nexus.js';
 import { mountAurora } from './aurora.js';
@@ -1863,20 +1864,31 @@ function hideBusy() {
   const b = $('busy');
   if (b) b.classList.add('hidden');
 }
-// 阅读时累计时长：仅在阅读器可见、未在后台、未打开面板时计时；跨过打卡阈值自动打卡
+// 阅读时长结算口径：'visible' = 阅读器可见即计时（v1.4.9 起，与真实阅读时长一致）。
+// 回退到 v1.4.8 及更早的「30 秒有效阅读门槛」只需把下面这一个常量改回 'effective'。
+const READING_TIME_MODE = 'visible';
+
+// 阅读时累计时长：仅在阅读器可见、未在后台、未打开任何面板时计时；跨过打卡阈值自动打卡。
+// v1.4.9：把「有效阅读」门槛从累计时长里解耦。plus.countThisTick() 仍然每 tick 调用
+// （它负责累加本次会话有效阅读 effectiveMs 与剩余时长估算），但不再决定 inkreader:stats
+// 是否 +dt —— 否则安静读一页不触屏超过 30 秒就会被误判成「亮屏放置」，时长大幅少算。
 function startReadingTimer() {
   stopReadingTimer();
   readingLastTs = Date.now();
   readingTimer = setInterval(() => {
     const now = Date.now();
-    const dt = now - readingLastTs;
+    // 异常间隔 clamp 到 60s（原来直接丢弃整段），避免 WebView 定时器节流时蒸发时长
+    const dt = Math.min(Math.max(0, now - readingLastTs), 60000);
     readingLastTs = now;
+    if (dt <= 0) return;
     if (document.hidden) return; // 后台不计时，避免回到前台时跳变
     if ($('reader').classList.contains('hidden')) return;
-    if (document.querySelector('.panel.open')) return; // 面板打开（设置/AI/统计）时暂停
-    if (dt <= 0 || dt > 60000) return; // 异常间隔忽略
-    if (plus && !plus.countThisTick(dt)) return; // Plus：有效阅读门槛，亮屏放置不计时
-    const { justCheckedIn } = addReadingTime(currentBook.id, dt);
+    // 与 plus.js 的面板判定保持同一口径：目录/书签/AI 面板、阅读工具箱、Pro 设置面板
+    if (document.querySelector('.panel.open, #plus-panel:not(.hidden), #pro-panel.pro-on')) return;
+    const effective = plus ? plus.countThisTick(dt) : true;
+    const countedMs = readingTimeTick({ mode: READING_TIME_MODE, dt, effective });
+    if (countedMs <= 0) return;
+    const { justCheckedIn } = addReadingTime(currentBook.id, countedMs);
     if (justCheckedIn) showToast(`今日阅读已打卡 ✓（≥${settings.checkinGoalMin} 分钟）`);
   }, 1000);
 }
