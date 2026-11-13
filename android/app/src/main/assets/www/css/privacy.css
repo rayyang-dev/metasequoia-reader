@@ -1,0 +1,173 @@
+/* 首次启动隐私政策弹窗（合规要求：华为《应用审核指南》7.5 / 《个人信息保护法》）
+ * 自包含样式：不依赖主题 CSS 变量，浅色纸感卡片在深色主题下同样清晰醒目。
+ * 遮罩 z-index 取 100000，高于阅读器 / 面板 / 亮度遮罩等所有既有层。
+ */
+
+#privacy-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+  background: rgba(18, 22, 24, 0.66);
+  /* 遮罩吃掉所有点击：用户必须先处理弹窗，不能误触底层界面 */
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#privacy-dialog {
+  width: min(560px, 100%);
+  max-height: 88vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fbf9f3;
+  color: #202b31;
+  border: 1px solid #ded8c8;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.pc-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.pc-hidden { display: none !important; }
+
+.pc-head {
+  flex: none;
+  padding: 18px 20px 10px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #202b31;
+  text-align: center;
+}
+
+.pc-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px 8px;
+  color: #3c474d;
+}
+
+.pc-scroll p { margin: 0 0 10px; }
+.pc-scroll ul { margin: 0 0 10px; padding-left: 20px; }
+.pc-scroll li { margin-bottom: 4px; }
+
+.pc-lead {
+  font-weight: 600;
+  color: #202b31;
+}
+
+.pc-link {
+  color: #9c2b24;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.pc-contact {
+  font-size: 13px;
+  color: #6b7378;
+  margin-top: 12px !important;
+}
+
+.pc-actions {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid #eae4d6;
+  background: #fbf9f3;
+}
+
+.pc-btn {
+  flex: 1;
+  min-height: 46px;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pc-btn-ghost {
+  background: #f2eee3;
+  color: #4c565b;
+  border: 1px solid #d8d1bf;
+}
+
+.pc-btn-primary {
+  background: #a81f1f;
+  color: #fff;
+  border: 1px solid #a81f1f;
+}
+
+.pc-btn-primary:active { background: #8c1919; }
+
+/* 全文层：复用应用内 LEGAL_CONTENT 的 h2 / p / li 结构 */
+.pc-doc-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eae4d6;
+  font-weight: 700;
+  color: #202b31;
+}
+
+.pc-back {
+  background: transparent;
+  border: 0;
+  color: #9c2b24;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.pc-doc-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 20px 20px;
+  color: #3c474d;
+}
+
+.pc-doc-body h2 {
+  font-size: 16px;
+  margin: 18px 0 8px;
+  color: #202b31;
+}
+
+.pc-doc-body p, .pc-doc-body li { margin: 0 0 10px; }
+.pc-doc-body ul { padding-left: 20px; }
+.pc-doc-body b { color: #202b31; }
+
+.pc-loading { color: #6b7378; text-align: center; padding: 24px 0; }
+
+@media (max-width: 380px) {
+  #privacy-mask { padding: 10px; }
+  .pc-head { font-size: 16px; padding: 14px 14px 8px; }
+  .pc-scroll, .pc-doc-body { padding-left: 14px; padding-right: 14px; }
+  .pc-actions { padding: 12px 14px 14px; }
+  #privacy-dialog { font-size: 14px; }
+}

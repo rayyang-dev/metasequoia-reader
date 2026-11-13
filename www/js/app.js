@@ -1012,6 +1012,10 @@ function openLegal(which) {
   document.querySelectorAll('.legal-tab').forEach((t) => t.classList.toggle('active', t.dataset.legal === which));
 }
 
+// 首次启动隐私政策弹窗（js/privacy-consent.js，普通同步脚本）复用这里的全文。
+// 只暴露只读引用，不新增文案副本，保证五份法律文案仍是唯一真源。
+window.__INK_LEGAL__ = { content: LEGAL_CONTENT, open: openLegal };
+
 // ---------- 面板 ----------
 function openPanel(id) {
   hideTranslate();

@@ -21,8 +21,12 @@
 // 「本版本未开放 AI / 在线翻译、仅本地 WebView」口径，删除所有「把数据发给第三方」的描述；
 // js/app.js 与 js/release-gate.js 变更（两者本来就不在 REUSE，无需摘出），仍须 +1 触发
 // INK_SW_ACTIVATED 版本比对，避免真机升级后继续从旧缓存显示旧的法律条款。
-const CACHE = 'inkreader-v21';
-const PREV_CACHE = 'inkreader-v20';
+// v22：修复华为审核 7.5 驳回（首次启动未显著提示阅读隐私政策）——新增
+// js/privacy-consent.js 与 css/privacy.css 两个文件（新文件绝不能进 REUSE），
+// index.html 与 js/app.js 均变更（两者本就不在 REUSE）。仍须 +1 触发页面重载，
+// 否则真机升级后 WebView 会继续吃旧缓存，弹窗不出现 = 驳回问题依旧。
+const CACHE = 'inkreader-v22';
+const PREV_CACHE = 'inkreader-v21';
 // 巨大的、永不改变的第三方库走 cache-first（首次拉取后固化）；
 // 应用自身脚本/css 走 network-first，永远取 APK 内最新，杜绝旧缓存覆盖新代码。
 const VENDOR = [
@@ -77,6 +81,9 @@ const ASSETS = [
   'js/vendor/pdf.worker.min.js',
   'js/release-gate.js',
   'css/release-review.css',
+  // v22：首次启动隐私政策弹窗（同步脚本 + 独立样式），必须随包缓存，否则离线首启不弹
+  'js/privacy-consent.js',
+  'css/privacy.css',
 ];
 
 // 相对上一版内容完全没变的文件：升级时直接从旧缓存复制，不产生任何网络/磁盘重复下载。
@@ -85,6 +92,8 @@ const ASSETS = [
 // aurora-registry.js 都不在此列，必须从 APK 包内取新版本。
 // v18 变更的 index.html / app.js / aurora.js / aurora.css / aurora-registry.js 同理。
 // v20 变更的 js/pro.js 已从本列表摘出（见文件头注释）；js/gaze.js 未改动，可继续复用。
+// v22 新增的 js/privacy-consent.js / css/privacy.css 以及变更的 index.html / js/app.js
+// 一律不在此列，必须从 APK 包内取新版本，否则升级后仍显示无弹窗的旧界面。
 // 这就是「增量缓存」的核心：版本一变就清空重建，对离线 WebView 既慢又容易留空洞。
 const REUSE = [
   'manifest.webmanifest',

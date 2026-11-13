@@ -4,7 +4,7 @@
   "description": "",
   "main": "sw.js",
   "scripts": {
-    "test": "node test/pro.mjs && node test/ink-flip.mjs && node test/plus.mjs && node test/stats.mjs && node test/nexus.mjs && node test/gaze.mjs && node test/gaze-integration.mjs && node test/smoke.mjs && node test/review-gate.mjs && node test/footnote.mjs && node test/marks.mjs",
+    "test": "node test/pro.mjs && node test/ink-flip.mjs && node test/plus.mjs && node test/stats.mjs && node test/nexus.mjs && node test/gaze.mjs && node test/gaze-integration.mjs && node test/smoke.mjs && node test/review-gate.mjs && node test/privacy-consent.mjs && node test/footnote.mjs && node test/marks.mjs",
     "test:pro": "node test/pro.mjs",
     "test:plus": "node test/plus.mjs",
     "test:stats": "node test/stats.mjs",
@@ -13,6 +13,7 @@
     "preview:flip": "node test/serve.mjs",
     "test:smoke": "node test/smoke.mjs",
     "test:review-gate": "node test/review-gate.mjs",
+    "test:privacy": "node test/privacy-consent.mjs",
     "test:footnote": "node test/footnote.mjs",
     "test:marks": "node test/marks.mjs"
   },
